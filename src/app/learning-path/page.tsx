@@ -41,6 +41,7 @@ const mockLearningData = {
         resources: {
             "Kubernetes": { video: { title: "Kubernetes in 100 Seconds", url: "#" }, cheatsheet: { title: "K8s Cheatsheet", url: "#" }, practice: { title: "Basic Pods Lab", url: "#" } },
             "System Design": { video: { title: "5 Common Design Patterns", url: "#" }, cheatsheet: { title: "System Design Cheatsheet", url: "#" }, practice: { title: "Whiteboard a URL Shortener", url: "#" } },
+            "GraphQL": { video: { title: "GraphQL in 100 Seconds", url: "#" }, cheatsheet: { title: "GraphQL Cheatsheet", url: "#" }, practice: { title: "Basic GraphQL Query", url: "#" } },
         },
         topQuestions: [
             "Explain the architecture of Kubernetes.",
@@ -156,24 +157,28 @@ export default function LearningPathPage() {
                              <CardDescription>Focus on these high-impact areas for quick improvement.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                        {topSkillsData.map(skill => (
-                            <Card key={skill.name}>
-                                <CardHeader className="p-4">
-                                     <CardTitle className="text-lg">{skill.name}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 pt-0 grid sm:grid-cols-3 gap-2 text-sm">
-                                    <a href={(mockLearningData.quickSprint.resources as any)[skill.name].video.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                        <Video className="h-4 w-4 text-primary" /> <span className="font-medium">Quick Video</span>
-                                    </a>
-                                     <a href={(mockLearningData.quickSprint.resources as any)[skill.name].cheatsheet.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                        <FileText className="h-4 w-4 text-primary" /> <span className="font-medium">Cheatsheet</span>
-                                    </a>
-                                     <a href={(mockLearningData.quickSprint.resources as any)[skill.name].practice.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                        <Code className="h-4 w-4 text-primary" /> <span className="font-medium">Practice</span>
-                                    </a>
-                                </CardContent>
-                            </Card>
-                        ))}
+                        {topSkillsData.map(skill => {
+                            const resources = (mockLearningData.quickSprint.resources as any)[skill.name];
+                            if (!resources) return null;
+                            return (
+                                <Card key={skill.name}>
+                                    <CardHeader className="p-4">
+                                         <CardTitle className="text-lg">{skill.name}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 grid sm:grid-cols-3 gap-2 text-sm">
+                                        <a href={resources.video.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
+                                            <Video className="h-4 w-4 text-primary" /> <span className="font-medium">Quick Video</span>
+                                        </a>
+                                         <a href={resources.cheatsheet.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
+                                            <FileText className="h-4 w-4 text-primary" /> <span className="font-medium">Cheatsheet</span>
+                                        </a>
+                                         <a href={resources.practice.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
+                                            <Code className="h-4 w-4 text-primary" /> <span className="font-medium">Practice</span>
+                                        </a>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
                         </CardContent>
                     </Card>
                 </div>
