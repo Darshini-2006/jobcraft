@@ -145,7 +145,7 @@ function InterviewSession() {
         fetchQuestions();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobDescription]);
+  }, [jobDescription, toast]);
 
   const handleSubmitAnswer = async () => {
     if (!userAnswer || !currentQuestion) return;
