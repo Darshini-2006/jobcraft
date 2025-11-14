@@ -66,12 +66,11 @@ export default function NewAnalysisPage() {
 
     try {
       const resumeDataUri = await fileToDataUri(resumeFile);
-
-      const [resumeSkills, jobDetails] = await Promise.all([
-        parseResumeSkills({ resumeDataUri }),
-        parseJobDescription({ jobDescription }),
-      ]);
       
+      // Run sequentially to better handle specific errors
+      const resumeSkills = await parseResumeSkills({ resumeDataUri });
+      const jobDetails = await parseJobDescription({ jobDescription });
+
       sessionStorage.setItem('resumeSkills', JSON.stringify(resumeSkills));
       sessionStorage.setItem('jobDetails', JSON.stringify(jobDetails));
       sessionStorage.setItem('jobDescription', jobDescription);
