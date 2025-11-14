@@ -15,9 +15,9 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col">
         <Header title="Dashboard">
           <Button asChild>
-            <Link href="/analysis/new">
+            <Link href="/interview/new">
               <Sparkles className="mr-2 h-4 w-4" />
-              New Job Analysis
+              New Mock Interview
             </Link>
           </Button>
         </Header>

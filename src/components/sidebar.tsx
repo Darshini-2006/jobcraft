@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Briefcase,
   FilePenLine,
   LayoutDashboard,
   Menu,
+  MessageSquare,
   Settings,
 } from 'lucide-react';
 
@@ -27,9 +27,9 @@ const navItems = [
     label: 'Dashboard',
   },
   {
-    href: '/jobs',
-    icon: Briefcase,
-    label: 'My Jobs',
+    href: '/interview/new',
+    icon: MessageSquare,
+    label: 'Mock Interview',
   },
   {
     href: '/resume/edit',

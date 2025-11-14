@@ -98,10 +98,9 @@ export default function NewAnalysisPage() {
     <div className="flex justify-center items-start p-4 md:p-6">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle>New Job Analysis</CardTitle>
+          <CardTitle>New Mock Interview</CardTitle>
           <CardDescription>
-            Upload your resume and paste a job description to get a detailed
-            analysis and tailored interview questions.
+            Upload your resume and paste a job description to start a mock interview.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,10 +162,10 @@ export default function NewAnalysisPage() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
+                Analyzing & Preparing Interview...
               </>
             ) : (
-              'Analyze Job'
+              'Start Interview'
             )}
           </Button>
         </CardFooter>
