@@ -118,6 +118,10 @@ function InterviewSession() {
           difficulty: jd.difficultyLevel,
         });
 
+        if (!questionResponse?.questions) {
+            throw new Error('Could not generate questions. The AI service might be busy. Please try again.');
+        }
+
         // 3. Save questions to subcollection
         const batch = writeBatch(firestore);
         questionResponse.questions.forEach((q) => {
@@ -128,11 +132,15 @@ function InterviewSession() {
 
       } catch (e: any) {
         console.error('Failed to start session:', e);
-        setError(e.message || 'An unknown error occurred.');
+        let description = e.message || 'An unknown error occurred.';
+        if (e?.message?.includes('503')) {
+            description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
+        }
+        setError(description);
         toast({
           variant: 'destructive',
           title: 'Failed to Start Session',
-          description: e.message,
+          description: description,
         });
       } finally {
         setIsStartingSession(false);
@@ -413,3 +421,5 @@ export default function InterviewPage() {
         </Suspense>
     )
 }
+
+    
