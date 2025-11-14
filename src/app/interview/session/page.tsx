@@ -190,16 +190,29 @@ function InterviewSession() {
     }
   };
 
-  if (isGenerating || !jobDetails || allQuestions.length === 0) {
+  if (isGenerating || !jobDetails) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
         <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
         <h2 className="text-2xl font-semibold mb-2">
-          { isGenerating ? 'Generating Your Interview...' : 'No Questions Found'}
+          Generating Your Interview...
         </h2>
         <p className="text-muted-foreground max-w-md">
-           { isGenerating ? <>Our AI is crafting a personalized set of interview questions based on
-          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.</> : 'Could not generate questions. Please go back and try the analysis again.'}
+          Our AI is crafting a personalized set of interview questions based on
+          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.
+        </p>
+      </div>
+    );
+  }
+
+  if (!isGenerating && allQuestions.length === 0) {
+     return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
+        <h2 className="text-2xl font-semibold mb-2">
+          No Questions Found
+        </h2>
+        <p className="text-muted-foreground max-w-md">
+          Could not generate questions. Please go back and try the analysis again.
         </p>
       </div>
     );
