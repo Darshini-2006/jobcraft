@@ -42,6 +42,8 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 function InterviewSession() {
   const [questions, setQuestions] =
@@ -56,16 +58,29 @@ function InterviewSession() {
   const [jobDetails, setJobDetails] = React.useState<ParseJobDescriptionOutput | null>(null);
   const [resumeSkills, setResumeSkills] = React.useState<ParseResumeSkillsOutput | null>(null);
   const [jobDescription, setJobDescription] = React.useState('');
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   useEffect(() => {
     const jd = sessionStorage.getItem('jobDetails');
     const rs = sessionStorage.getItem('resumeSkills');
     const jds = sessionStorage.getItem('jobDescription');
 
-    if (jd) setJobDetails(JSON.parse(jd));
-    if (rs) setResumeSkills(JSON.parse(rs));
-    if (jds) setJobDescription(jds);
-  }, []);
+    if (!jd || !rs || !jds) {
+      router.push('/analysis/new');
+      toast({
+        variant: 'destructive',
+        title: 'Session Expired',
+        description: 'Job and resume data not found. Please start a new analysis.',
+      });
+      return;
+    }
+
+    setJobDetails(JSON.parse(jd));
+    setResumeSkills(JSON.parse(rs));
+    setJobDescription(jds);
+  }, [router, toast]);
 
 
   const allQuestions: { type: string; question: string }[] = React.useMemo(() => {
@@ -111,8 +126,17 @@ function InterviewSession() {
           skillGaps: getSkillGaps(),
         });
         setQuestions(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to generate questions:', error);
+        let description = 'Something went wrong. Please try again.';
+        if (error?.message?.includes('503')) {
+          description = 'The AI service is temporarily overloaded. Please go back and try the analysis again in a moment.'
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Failed to Generate Questions',
+          description: description,
+        });
       } finally {
         setIsGenerating(false);
       }
@@ -120,7 +144,8 @@ function InterviewSession() {
     if (jobDescription) {
         fetchQuestions();
     }
-  }, [jobDescription, jobDetails, resumeSkills]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobDescription]);
 
   const handleSubmitAnswer = async () => {
     if (!userAnswer || !currentQuestion) return;
@@ -133,8 +158,17 @@ function InterviewSession() {
         jobDescription: jobDescription,
       });
       setEvaluation(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to evaluate answer:', error);
+       let description = 'Something went wrong. Please try again.';
+        if (error?.message?.includes('503')) {
+          description = 'The AI service is temporarily overloaded. Please wait a moment and try submitting again.'
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Evaluation Failed',
+          description: description,
+        });
     } finally {
       setIsEvaluating(false);
     }
@@ -156,16 +190,16 @@ function InterviewSession() {
     }
   };
 
-  if (isGenerating || !jobDetails) {
+  if (isGenerating || !jobDetails || allQuestions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
         <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
         <h2 className="text-2xl font-semibold mb-2">
-          Generating Your Interview...
+          { isGenerating ? 'Generating Your Interview...' : 'No Questions Found'}
         </h2>
         <p className="text-muted-foreground max-w-md">
-          Our AI is crafting a personalized set of interview questions based on
-          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.
+           { isGenerating ? <>Our AI is crafting a personalized set of interview questions based on
+          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.</> : 'Could not generate questions. Please go back and try the analysis again.'}
         </p>
       </div>
     );
@@ -310,7 +344,7 @@ function InterviewSession() {
 
 export default function InterviewPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
             <InterviewSession />
         </Suspense>
     )
