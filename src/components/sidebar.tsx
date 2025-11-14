@@ -8,6 +8,7 @@ import {
   Menu,
   MessageSquare,
   Settings,
+  ClipboardList,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -30,6 +31,11 @@ const navItems = [
     href: '/analysis/new',
     icon: MessageSquare,
     label: 'Mock Interview',
+  },
+  {
+    href: '/learning-path',
+    icon: ClipboardList,
+    label: 'Learning Path',
   },
   {
     href: '/resume/edit',
