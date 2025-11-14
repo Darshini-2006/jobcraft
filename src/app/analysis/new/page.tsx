@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,7 +22,6 @@ export default function NewAnalysisPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,7 +74,7 @@ export default function NewAnalysisPage() {
       sessionStorage.setItem('jobDetails', JSON.stringify(jobDetails));
       sessionStorage.setItem('jobDescription', jobDescription);
 
-      router.push(`/interview/session`);
+      window.location.href = '/interview/session';
 
     } catch (error: any) {
       console.error('Analysis failed:', error);
