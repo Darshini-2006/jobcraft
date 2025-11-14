@@ -63,23 +63,33 @@ function InterviewSession() {
 
 
   useEffect(() => {
-    const jd = sessionStorage.getItem('jobDetails');
-    const rs = sessionStorage.getItem('resumeSkills');
-    const jds = sessionStorage.getItem('jobDescription');
+    try {
+      const jd = sessionStorage.getItem('jobDetails');
+      const rs = sessionStorage.getItem('resumeSkills');
+      const jds = sessionStorage.getItem('jobDescription');
 
-    if (!jd || !rs || !jds) {
-      router.push('/analysis/new');
-      toast({
-        variant: 'destructive',
-        title: 'Session Expired',
-        description: 'Job and resume data not found. Please start a new analysis.',
-      });
-      return;
+      if (!jd || !rs || !jds) {
+        router.push('/analysis/new');
+        toast({
+          variant: 'destructive',
+          title: 'Session Expired',
+          description: 'Job and resume data not found. Please start a new analysis.',
+        });
+        return;
+      }
+
+      setJobDetails(JSON.parse(jd));
+      setResumeSkills(JSON.parse(rs));
+      setJobDescription(jds);
+    } catch (error) {
+        console.error('Failed to parse session storage data:', error);
+        router.push('/analysis/new');
+         toast({
+          variant: 'destructive',
+          title: 'Session Error',
+          description: 'Could not load session data. Please start a new analysis.',
+        });
     }
-
-    setJobDetails(JSON.parse(jd));
-    setResumeSkills(JSON.parse(rs));
-    setJobDescription(jds);
   }, [router, toast]);
 
 
@@ -117,7 +127,7 @@ function InterviewSession() {
 
   React.useEffect(() => {
     const fetchQuestions = async () => {
-      if (!jobDescription) return;
+      if (!jobDescription || !jobDetails) return;
       setIsGenerating(true);
       try {
         const result = await generateInterviewQuestions({
@@ -140,14 +150,14 @@ function InterviewSession() {
         setIsGenerating(false);
       }
     };
-    if (jobDescription) {
+    if (jobDescription && jobDetails) {
         fetchQuestions();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobDescription]);
+  }, [jobDescription, jobDetails, toast]);
 
   const handleSubmitAnswer = async () => {
-    if (!userAnswer || !currentQuestion) return;
+    if (!userAnswer || !currentQuestion || !jobDescription) return;
     setIsEvaluating(true);
     setEvaluation(null);
     try {
@@ -211,7 +221,7 @@ function InterviewSession() {
           Could Not Generate Questions
         </h2>
         <p className="text-muted-foreground max-w-md">
-          There was an issue generating interview questions. This may be due to a temporary service issue. Please go back and try the analysis again.
+          There was an issue generating interview questions. This may be due to a temporary service issue.
         </p>
          <Button onClick={() => router.push('/analysis/new')} className="mt-4">
             Start New Analysis
@@ -364,5 +374,3 @@ export default function InterviewPage() {
         </Suspense>
     )
 }
-
-    
