@@ -1,0 +1,363 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "readinessScore": {
+          "type": "number",
+          "description": "Overall readiness score of the user for job interviews."
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "Resume": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Resume",
+      "type": "object",
+      "description": "Represents a user's resume.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the resume."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Resume)"
+        },
+        "skills": {
+          "type": "array",
+          "description": "A list of skills extracted from the resume.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "experience": {
+          "type": "string",
+          "description": "A description of the user's prior experience."
+        },
+        "tools": {
+          "type": "array",
+          "description": "A list of tools and technologies mentioned in the resume.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId"
+      ]
+    },
+    "JobDescription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobDescription",
+      "type": "object",
+      "description": "Represents a job description.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job description."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role described in the job description."
+        },
+        "company": {
+          "type": "string",
+          "description": "The company associated with the job description."
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "A list of skills required for the job.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proficiency": {
+          "type": "string",
+          "description": "The required proficiency level for the job."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level of the job (easy, medium, hard)."
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "requiredSkills"
+      ]
+    },
+    "SkillGap": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SkillGap",
+      "type": "object",
+      "description": "Represents the skill gap analysis between a resume and a job description.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the skill gap analysis."
+        },
+        "resumeId": {
+          "type": "string",
+          "description": "Reference to Resume. (Relationship: Resume 1:N SkillGap)"
+        },
+        "jobDescriptionId": {
+          "type": "string",
+          "description": "Reference to JobDescription. (Relationship: JobDescription 1:N SkillGap)"
+        },
+        "matchedSkills": {
+          "type": "array",
+          "description": "A list of skills that match between the resume and job description.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingSkills": {
+          "type": "array",
+          "description": "A list of skills that are missing from the resume compared to the job description.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skillsNeedingImprovement": {
+          "type": "array",
+          "description": "A list of skills that need improvement based on the job description requirements.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "resumeId",
+        "jobDescriptionId"
+      ]
+    },
+    "Session": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Session",
+      "type": "object",
+      "description": "Represents a mock interview session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the session."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Session)"
+        },
+        "jobDescriptionId": {
+          "type": "string",
+          "description": "Reference to JobDescription. (Relationship: JobDescription 1:N Session)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the session was created.",
+          "format": "date-time"
+        },
+        "currentQuestionIndex": {
+          "type": "number",
+          "description": "Index of the current question in the session."
+        },
+        "overallScore": {
+          "type": "number",
+          "description": "Overall score for the session."
+        },
+        "skillScores": {
+          "type": "array",
+          "description": "Scores for individual skills assessed during the session.",
+          "items": {
+            "type": "number"
+          }
+        },
+        "readinessPercentage": {
+          "type": "number",
+          "description": "Readiness percentage calculated for the session."
+        },
+        "summary": {
+          "type": "string",
+          "description": "A three-line AI summary of the session including strengths, weaknesses, and what to practice next."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "jobDescriptionId",
+        "createdAt"
+      ]
+    },
+    "Question": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Question",
+      "type": "object",
+      "description": "Represents a question in a mock interview session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the question."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Reference to Session. (Relationship: Session 1:N Question)"
+        },
+        "skill": {
+          "type": "string",
+          "description": "The skill being assessed by the question."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The difficulty level of the question."
+        },
+        "questionText": {
+          "type": "string",
+          "description": "The text of the question."
+        },
+        "userAnswer": {
+          "type": "string",
+          "description": "The user's answer to the question."
+        },
+        "aiFeedback": {
+          "type": "string",
+          "description": "AI feedback on the user's answer."
+        },
+        "score": {
+          "type": "number",
+          "description": "Score assigned to the user's answer by the AI."
+        }
+      },
+      "required": [
+        "id",
+        "sessionId",
+        "questionText"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Only the authenticated user can access their profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/resumes/{resumeId}",
+        "definition": {
+          "entityName": "Resume",
+          "schema": {
+            "$ref": "#/backend/entities/Resume"
+          },
+          "description": "Stores user resumes. Includes denormalized 'userId' field for authorization independence.",
+          "params": [
+            {
+              "name": "resumeId",
+              "description": "The unique identifier of the resume."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/job_descriptions/{jobDescriptionId}",
+        "definition": {
+          "entityName": "JobDescription",
+          "schema": {
+            "$ref": "#/backend/entities/JobDescription"
+          },
+          "description": "Stores job descriptions. Write access restricted to authorized users (e.g., admins).",
+          "params": [
+            {
+              "name": "jobDescriptionId",
+              "description": "The unique identifier of the job description."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/skill_gaps/{skillGapId}",
+        "definition": {
+          "entityName": "SkillGap",
+          "schema": {
+            "$ref": "#/backend/entities/SkillGap"
+          },
+          "description": "Stores skill gap analysis results. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "skillGapId",
+              "description": "The unique identifier for the skill gap analysis."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Stores mock interview sessions. Includes 'userId' and 'jobDescriptionId' to link to respective documents.",
+          "params": [
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sessions/{sessionId}/questions/{questionId}",
+        "definition": {
+          "entityName": "Question",
+          "schema": {
+            "$ref": "#/backend/entities/Question"
+          },
+          "description": "Stores individual questions for a session. Includes 'sessionId' to link back to the parent session.",
+          "params": [
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the session."
+            },
+            {
+              "name": "questionId",
+              "description": "The unique identifier for the question."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the CareerSprint AI application, focusing on user authentication, resume and job description analysis, skill gap analysis, mock interview engine, answer evaluation, and progress tracking. The structure prioritizes authorization independence, clarity, and scalability.\n\n**Authorization Independence:** Achieved by avoiding hierarchical authorization dependencies. For example, question documents in the `sessions/{sessionId}/questions/{questionId}` subcollection do not rely on `get()` calls to the parent `session` document for authorization. All necessary data for securing the question document (e.g., the `userId` obtained from the session) is either implicitly available via path-based ownership (the session is owned by the user) or is denormalized into the question document if cross-collection access is required.  Rules can thus be written to only check that `request.auth.uid == resource.data.userId` to guarantee safe access and modification of questions.\n\n**QAPs (Rules are not Filters):** Secure list operations are supported using structural segregation. For instance, user-owned data (sessions, resumes) are stored under `/users/{userId}`, enabling simple rules that allow a user to list only their own sessions or resumes.\n\n**Structure Overview:**\n\n*   `/users/{userId}`: Stores user profiles.  Path-based ownership ensures only the authenticated user can access their profile.  The `readinessScore` is stored here and updated after each session.\n*   `/resumes/{resumeId}`: Stores user resumes.  The `userId` field is denormalized to ensure that rules can enforce ownership without requiring a `get()` call to the `/users/{userId}` document.\n*   `/job_descriptions/{jobDescriptionId}`: Stores job descriptions. Publicly accessible, but write access is restricted to authorized users (e.g., admins - not implemented in this design but would use a `/roles_admin/{userId}` collection).\n*   `/skill_gaps/{skillGapId}`: Stores the results of skill gap analysis. Contains references to `resumeId` and `jobDescriptionId`.  The `userId` should be denormalized to maintain ownership. \n*   `/sessions/{sessionId}`: Stores mock interview sessions. The `userId` and `jobDescriptionId` are present to link to respective documents. The `overallScore`, `skillScores`, `readinessPercentage`, and `summary` are stored here.\n*   `/sessions/{sessionId}/questions/{questionId}`: Stores individual questions for a session. The `sessionId` links back to the parent session. The `userAnswer`, `aiFeedback`, and `score` are stored here.  Since it is nested, rules will automatically inherit that the user is the owner. This prevents abuse and tampering.\n\nThis design supports the core features of CareerSprint AI and adheres to the principles of authorization independence and structural segregation for robust security rules."
+  }
+}
