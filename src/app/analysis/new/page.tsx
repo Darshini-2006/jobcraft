@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,14 +14,87 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FileCheck, UploadCloud } from 'lucide-react';
+import { FileCheck, Loader2, UploadCloud } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { parseResumeSkills } from '@/ai/flows/parse-resume-skills';
+import { parseJobDescription } from '@/ai/flows/parse-job-description';
 
 export default function NewAnalysisPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [jobDescription, setJobDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setResumeFile(event.target.files[0]);
+      const file = event.target.files[0];
+      if (file.type !== 'application/pdf') {
+        toast({
+          variant: 'destructive',
+          title: 'Invalid File Type',
+          description: 'Please upload a PDF file.',
+        });
+        return;
+      }
+      setResumeFile(file);
+    }
+  };
+
+  const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAnalyze = async () => {
+    if (!resumeFile || !jobDescription) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Please upload a resume and paste a job description.',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const resumeDataUri = await fileToDataUri(resumeFile);
+
+      // We can run these in parallel
+      const [resumeSkills, jobDetails] = await Promise.all([
+        parseResumeSkills({ resumeDataUri }),
+        parseJobDescription({ jobDescription }),
+      ]);
+      
+      // For now, we will just log the results to the console.
+      // In the next step, we will pass this data to a new analysis results page.
+      console.log('Resume Skills:', resumeSkills);
+      console.log('Job Details:', jobDetails);
+
+      // A real implementation would navigate to a results page:
+      // router.push('/analysis/results');
+      
+      toast({
+        title: 'Analysis Complete',
+        description: 'Your resume and job description have been analyzed.',
+      });
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: 'Something went wrong. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,6 +144,7 @@ export default function NewAnalysisPage() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     accept=".pdf"
                     onChange={handleFileChange}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -80,12 +155,24 @@ export default function NewAnalysisPage() {
                 id="job-description"
                 placeholder="Paste the full job description here..."
                 className="h-48 resize-none"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button>Analyze Job</Button>
+          <Button onClick={handleAnalyze} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              'Analyze Job'
+            )}
+          </Button>
         </CardFooter>
       </Card>
     </div>
