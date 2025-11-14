@@ -78,12 +78,16 @@ export default function NewAnalysisPage() {
 
       router.push(`/interview/session`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis failed:', error);
+      let description = 'Something went wrong. Please try again.';
+      if (error.message && error.message.includes('503')) {
+        description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
+      }
       toast({
         variant: 'destructive',
         title: 'Analysis Failed',
-        description: 'Something went wrong. Please try again.',
+        description: description,
       });
     } finally {
       setIsLoading(false);
