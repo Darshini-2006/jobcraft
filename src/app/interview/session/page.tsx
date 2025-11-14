@@ -52,7 +52,7 @@ const mockInterviewData = {
 };
 // --- END MOCK DATA ---
 
-type ViewMode = 'full' | 'sprint';
+type ViewMode = 'fullPrep' | 'quickSprint';
 
 const QuestionCard = ({ question, mode }: { question: any; mode: ViewMode }) => {
   const [answer, setAnswer] = useState('');
@@ -78,14 +78,14 @@ const QuestionCard = ({ question, mode }: { question: any; mode: ViewMode }) => 
               {question.skill}
             </CardDescription>
           </div>
-          <Badge variant="secondary">{mode === 'full' ? "Deep Dive" : "Quick Check"}</Badge>
+          <Badge variant="secondary">{mode === 'fullPrep' ? "Deep Dive" : "Quick Check"}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-lg font-semibold">{question.questionText}</p>
         <Textarea
           placeholder="Your answer..."
-          rows={mode === 'full' ? 8 : 4}
+          rows={mode === 'fullPrep' ? 8 : 4}
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           disabled={isEvaluating || isAnswered}
@@ -109,7 +109,7 @@ const EvaluationCard = ({ question, mode }: { question: any, mode: ViewMode }) =
             <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> AI Feedback</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-            {mode === 'full' ? (
+            {mode === 'fullPrep' ? (
                 <>
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Your Score</p>
@@ -217,7 +217,7 @@ const QuickSprintSummary = ({ summary }: { summary: any }) => (
 
 
 export default function MockInterviewPage() {
-    const [mode, setMode] = useState<ViewMode>('full');
+    const [mode, setMode] = useState<ViewMode>('fullPrep');
     const [selectedSkill, setSelectedSkill] = useState('All');
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
@@ -235,7 +235,7 @@ export default function MockInterviewPage() {
     if (isSessionComplete) {
          return (
             <div className="flex-1 flex items-center justify-center p-4">
-                {mode === 'full' ? <FullPrepSummary summary={mockInterviewData.fullPrep.summary} /> : <QuickSprintSummary summary={mockInterviewData.quickSprint.summary} />}
+                {mode === 'fullPrep' ? <FullPrepSummary summary={mockInterviewData.fullPrep.summary} /> : <QuickSprintSummary summary={mockInterviewData.quickSprint.summary} />}
             </div>
          )
     }
@@ -245,8 +245,8 @@ export default function MockInterviewPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="full" className="gap-2"><BookOpen /> Full Prep</TabsTrigger>
-                        <TabsTrigger value="sprint" className="gap-2"><Zap /> Quick Sprint</TabsTrigger>
+                        <TabsTrigger value="fullPrep" className="gap-2"><BookOpen /> Full Prep</TabsTrigger>
+                        <TabsTrigger value="quickSprint" className="gap-2"><Zap /> Quick Sprint</TabsTrigger>
                     </TabsList>
                 </Tabs>
                 <div className="w-full sm:w-auto">
