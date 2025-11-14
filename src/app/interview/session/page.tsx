@@ -200,12 +200,18 @@ export default function MockInterviewPage() {
                 });
             } catch (err: any) {
                 console.error(err);
+                let description = err.message || "An unexpected error occurred.";
+                // Specifically check for a 503 Service Unavailable error from the AI service.
+                if (err?.message?.includes('503')) {
+                    description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
+                }
+
                 toast({
                     variant: "destructive",
                     title: "Failed to Start Session",
-                    description: err.message || "An unexpected error occurred.",
+                    description: description,
                 });
-                setSessionState(prev => ({ ...prev, isGenerating: false, error: err.message }));
+                setSessionState(prev => ({ ...prev, isGenerating: false, error: description }));
             }
         };
 
