@@ -209,11 +209,14 @@ function InterviewSession() {
      return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
         <h2 className="text-2xl font-semibold mb-2">
-          No Questions Found
+          Could Not Generate Questions
         </h2>
         <p className="text-muted-foreground max-w-md">
-          Could not generate questions. Please go back and try the analysis again.
+          There was an issue generating interview questions. This may be due to a temporary service issue. Please go back and try the analysis again.
         </p>
+         <Button onClick={() => router.push('/analysis/new')} className="mt-4">
+            Start New Analysis
+          </Button>
       </div>
     );
   }
