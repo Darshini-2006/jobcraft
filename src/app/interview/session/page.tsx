@@ -1,302 +1,336 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, ChevronDown, Loader2, Send, Sparkles, Star, BookOpen, Zap } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, Send, Sparkles, Star, BookOpen, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { Bar, BarChart, ResponsiveContainer } from 'recharts';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import { generateInterviewQuestions, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
+import { evaluateUserAnswer, EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// --- MOCK DATA ---
-const mockInterviewData = {
-  jobInfo: {
-    role: "Senior Frontend Engineer",
-    company: "Vercel",
-    difficulty: "Hard",
-    skills: ["React", "TypeScript", "System Design", "GraphQL", "Next.js"]
-  },
-  fullPrep: {
-    questions: [
-      { id: "q1", skill: "React", questionText: "Explain the difference between a Presentational and a Container component in React.", status: "answered", score: 85, feedback: "Good explanation, but you could have mentioned Hooks as a more modern way to handle state in functional components.", strengths: ["Clear definition", "Mentioned separation of concerns"], weaknesses: ["Did not mention modern patterns (Hooks)"] },
-      { id: "q2", skill: "React", questionText: "How does the virtual DOM work and what are its benefits?", status: "answered", score: 92, feedback: "Excellent answer. You clearly understand the diffing algorithm and performance benefits.", strengths: ["Detailed explanation of diffing", "Correctly identified performance gains"], weaknesses: [] },
-      { id: "q3", skill: "System Design", questionText: "How would you design a scalable notification system?", status: "unanswered" },
-      { id: "q4", skill: "TypeScript", questionText: "What are mapped types in TypeScript and provide an example.", status: "unanswered" },
-      { id: "q5", skill: "Next.js", questionText: "Describe the differences between getServerSideProps, getStaticProps, and Incremental Static Regeneration (ISR).", status: "unanswered" },
-    ],
-    summary: {
-      overallScore: 88,
-      weakestSkill: "System Design",
-      strongestSkill: "React",
-      detailedFeedback: "You have a strong command of React fundamentals. Your main area for improvement is in large-scale system design, where you need to think more about distributed components and trade-offs. Practice more on designing systems like news feeds or notification services.",
-      nextSteps: ["Review common system design patterns.", "Practice a medium-difficulty System Design question on a whiteboard.", "Read about TypeScript's utility types."]
-    }
-  },
-  quickSprint: {
-    questions: [
-        { id: "qs1", skill: "React", questionText: "What is a React Hook?", status: "answered", tag: "Strong", quickFeedback: "Correct and concise.", fundamental: "Core concept of modern React state and lifecycle." },
-        { id: "qs2", skill: "System Design", questionText: "What is a load balancer?", status: "answered", tag: "Medium", quickFeedback: "Good, but could mention different balancing algorithms.", fundamental: "Key component for scalability." },
-        { id: "qs3", skill: "TypeScript", questionText: "What is the difference between an interface and a type in TypeScript?", status: "unanswered" },
-    ],
-    summary: {
-        fundamentals: ["React Hooks", "State Management", "Component Lifecycle", "Load Balancing", "API Design (REST vs GraphQL)"],
-        topQuestions: ["What are the benefits of Next.js?", "How do you handle state in a large React application?", "Explain the CAP theorem.", "What are microservices?", "Describe a recent challenging technical problem you solved."],
-        miniTasks: ["Whiteboard a simple URL shortener service.", "Review the TypeScript handbook on utility types."]
-    }
-  }
-};
-// --- END MOCK DATA ---
-
-type ViewMode = 'fullPrep' | 'quickSprint';
-
-const QuestionCard = ({ question, mode }: { question: any; mode: ViewMode }) => {
-  const [answer, setAnswer] = useState('');
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [isAnswered, setIsAnswered] = useState(question.status === 'answered');
-
-  const handleSubmit = () => {
-    if (!answer) return;
-    setIsEvaluating(true);
-    setTimeout(() => {
-      setIsEvaluating(false);
-      setIsAnswered(true);
-    }, 1500);
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Question</CardTitle>
-            <CardDescription className="mt-1">
-              {question.skill}
-            </CardDescription>
-          </div>
-          <Badge variant="secondary">{mode === 'fullPrep' ? "Deep Dive" : "Quick Check"}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-lg font-semibold">{question.questionText}</p>
-        <Textarea
-          placeholder="Your answer..."
-          rows={mode === 'fullPrep' ? 8 : 4}
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          disabled={isEvaluating || isAnswered}
-        />
-      </CardContent>
-      <CardFooter className="flex justify-end">
-        {!isAnswered ? (
-          <Button onClick={handleSubmit} disabled={!answer || isEvaluating}>
-            {isEvaluating ? <Loader2 className="animate-spin" /> : <Send />}
-            {isEvaluating ? 'Evaluating...' : 'Submit Answer'}
-          </Button>
-        ) : null}
-      </CardFooter>
-    </Card>
-  );
+type Question = GenerateInterviewQuestionsOutput['questions'][0] & {
+    status: 'answered' | 'unanswered' | 'evaluating';
+    userAnswer?: string;
+    evaluation?: EvaluateUserAnswerOutput;
 };
 
-const EvaluationCard = ({ question, mode }: { question: any, mode: ViewMode }) => (
+type SessionState = {
+    jobDetails: any;
+    resumeSkills: any;
+    jobDescription: string;
+    questions: Question[];
+    currentQuestionIndex: number;
+    isSessionComplete: boolean;
+    isGenerating: boolean;
+    error: string | null;
+};
+
+const QuestionCard = ({ question, answer, setAnswer, onSubmit, isEvaluating }: { question: Question; answer: string; setAnswer: (a: string) => void; onSubmit: () => void; isEvaluating: boolean }) => {
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Question</CardTitle>
+                        <CardDescription className="mt-1">
+                            Skill: {question.skill}
+                        </CardDescription>
+                    </div>
+                    <Badge variant="secondary">{question.difficulty}</Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <p className="text-lg font-semibold">{question.questionText}</p>
+                <Textarea
+                    placeholder="Your answer..."
+                    rows={8}
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    disabled={isEvaluating || question.status === 'answered'}
+                />
+            </CardContent>
+            <CardFooter className="flex justify-end">
+                {question.status !== 'answered' && (
+                    <Button onClick={onSubmit} disabled={!answer || isEvaluating}>
+                        {isEvaluating && <Loader2 className="animate-spin" />}
+                        {isEvaluating ? 'Evaluating...' : 'Submit Answer'}
+                    </Button>
+                )}
+            </CardFooter>
+        </Card>
+    );
+};
+
+const EvaluationCard = ({ evaluation }: { evaluation: EvaluateUserAnswerOutput }) => (
     <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> AI Feedback</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary" /> AI Feedback</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-            {mode === 'fullPrep' ? (
-                <>
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Your Score</p>
-                        <p className="text-5xl font-bold">{question.score}%</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Strengths:</h4>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                            {question.strengths.map((s: string) => <li key={s}>{s}</li>)}
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Areas for Improvement:</h4>
-                         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                            {question.weaknesses.map((w: string) => <li key={w}>{w}</li>)}
-                        </ul>
-                    </div>
-                </>
-            ) : (
-                <>
-                    <div className="text-center">
-                         <Badge variant={question.tag === 'Strong' ? 'default' : question.tag === 'Medium' ? 'secondary' : 'destructive'} className="text-2xl font-bold px-4 py-2">{question.tag}</Badge>
-                    </div>
-                     <div>
-                        <h4 className="font-semibold mb-2">Feedback:</h4>
-                        <p className="text-sm text-muted-foreground">{question.quickFeedback}</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Fundamental to Review:</h4>
-                        <p className="text-sm text-muted-foreground">{question.fundamental}</p>
-                    </div>
-                </>
-            )}
-        </CardContent>
-    </Card>
-);
-
-const FullPrepSummary = ({ summary }: { summary: any }) => (
-    <Card className="w-full max-w-3xl">
-        <CardHeader className="text-center">
-            <CardTitle>Full Prep Session Complete!</CardTitle>
-            <CardDescription>Here's a detailed breakdown of your performance.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-             <div className="text-center">
-                <p className="text-sm text-muted-foreground">Overall Score</p>
-                <p className="text-7xl font-bold text-primary">{summary.overallScore}%</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-secondary/50 p-3 rounded-lg text-center">
-                    <p className="font-semibold">Strongest Skill</p>
-                    <p className="text-green-500">{summary.strongestSkill}</p>
-                </div>
-                 <div className="bg-secondary/50 p-3 rounded-lg text-center">
-                    <p className="font-semibold">Weakest Skill</p>
-                    <p className="text-red-500">{summary.weakestSkill}</p>
-                </div>
+            <div className="text-center">
+                <p className="text-sm text-muted-foreground">Your Score</p>
+                <p className="text-5xl font-bold">{evaluation.score}%</p>
             </div>
             <div>
-                 <h4 className="font-semibold mb-2 text-center">AI Coach Summary</h4>
-                 <p className="text-sm text-muted-foreground italic text-center">"{summary.detailedFeedback}"</p>
-            </div>
-             <div>
-                <h4 className="font-semibold mb-2 text-center">Recommended Next Steps</h4>
-                <ul className="list-disc list-inside text-sm text-muted-foreground mx-auto max-w-md">
-                    {summary.nextSteps.map((step: string) => <li key={step}>{step}</li>)}
-                </ul>
+                <h4 className="font-semibold mb-2">Feedback:</h4>
+                <p className="text-sm text-muted-foreground italic">"{evaluation.feedback}"</p>
             </div>
         </CardContent>
-        <CardFooter className="flex justify-center gap-4">
-            <Button asChild><Link href="/learning-path">Update Learning Path (Full Prep)</Link></Button>
-            <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
-        </CardFooter>
     </Card>
 );
 
-const QuickSprintSummary = ({ summary }: { summary: any }) => (
-     <Card className="w-full max-w-3xl">
-        <CardHeader className="text-center">
-            <CardTitle>Quick Sprint Complete!</CardTitle>
-            <CardDescription>Here's your quick boost summary.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <h4 className="font-semibold mb-3 text-center flex items-center justify-center gap-2"><Star className="text-yellow-400"/> Top 5 Fundamentals to Review</h4>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                        {summary.fundamentals.map((f: string) => <li key={f}>{f}</li>)}
-                    </ul>
-                </div>
-                 <div>
-                    <h4 className="font-semibold mb-3 text-center flex items-center justify-center gap-2"><BookOpen className="text-primary"/> 10 Most Asked Questions</h4>
-                    <ul className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
-                        {summary.topQuestions.slice(0, 5).map((q: string) => <li key={q}>{q}</li>)}
-                    </ul>
-                </div>
-            </div>
-        </CardContent>
-         <CardFooter className="flex justify-center gap-4">
-            <Button asChild><Link href="/learning-path">Update Learning Path (Quick Sprint)</Link></Button>
-            <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
-        </CardFooter>
-    </Card>
-);
+const SessionSummary = ({ questions, jobDetails }: { questions: Question[], jobDetails: any }) => {
+    const totalScore = questions.reduce((acc, q) => acc + (q.evaluation?.score || 0), 0);
+    const averageScore = Math.round(totalScore / questions.length);
 
+    // Group scores by skill
+    const skillScores: { [key: string]: { scores: number[], count: number } } = {};
+    questions.forEach(q => {
+        if (!q.evaluation) return;
+        if (!skillScores[q.skill]) {
+            skillScores[q.skill] = { scores: [], count: 0 };
+        }
+        skillScores[q.skill].scores.push(q.evaluation.score);
+        skillScores[q.skill].count++;
+    });
+
+    const skillAverages = Object.entries(skillScores).map(([skill, data]) => ({
+        skill,
+        average: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.count)
+    })).sort((a, b) => a.average - b.average);
+
+    const weakestSkill = skillAverages[0];
+    const strongestSkill = skillAverages[skillAverages.length - 1];
+
+    return (
+        <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-3xl">
+                <CardHeader className="text-center">
+                    <CardTitle>Session Complete!</CardTitle>
+                    <CardDescription>Here's a breakdown of your performance for the {jobDetails.role} role.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Overall Score</p>
+                        <p className="text-7xl font-bold text-primary">{averageScore}%</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="bg-secondary/50 p-3 rounded-lg text-center">
+                            <p className="font-semibold">Strongest Skill</p>
+                            <p className="text-green-500">{strongestSkill?.skill} ({strongestSkill?.average}%)</p>
+                        </div>
+                        <div className="bg-secondary/50 p-3 rounded-lg text-center">
+                            <p className="font-semibold">Weakest Skill</p>
+                            <p className="text-red-500">{weakestSkill?.skill} ({weakestSkill?.average}%)</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2 text-center">Next Steps</h4>
+                        <p className="text-sm text-muted-foreground italic text-center">
+                            Your performance data will be used to update your dashboard and learning path.
+                        </p>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-center gap-4">
+                    <Button asChild><Link href="/learning-path">View Learning Path</Link></Button>
+                    <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 export default function MockInterviewPage() {
-    const [mode, setMode] = useState<ViewMode>('fullPrep');
-    const [selectedSkill, setSelectedSkill] = useState('All');
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const { toast } = useToast();
+    const [sessionState, setSessionState] = useState<SessionState>({
+        jobDetails: null,
+        resumeSkills: null,
+        jobDescription: '',
+        questions: [],
+        currentQuestionIndex: 0,
+        isSessionComplete: false,
+        isGenerating: true,
+        error: null,
+    });
+    const [currentAnswer, setCurrentAnswer] = useState('');
 
-    const interviewState = mockInterviewData[mode];
-    const questions = interviewState.questions;
-    const currentQuestion = questions[currentQuestionIndex];
-    const isSessionComplete = currentQuestionIndex >= questions.length;
+    useEffect(() => {
+        const startSession = async () => {
+            try {
+                const jobDetailsStr = sessionStorage.getItem('jobDetails');
+                const resumeSkillsStr = sessionStorage.getItem('resumeSkills');
+                const jobDescription = sessionStorage.getItem('jobDescription');
 
-    const handleNextQuestion = () => {
-        if (currentQuestionIndex < questions.length) {
-            setCurrentQuestionIndex(prev => prev + 1);
+                if (!jobDetailsStr || !resumeSkillsStr || !jobDescription) {
+                    throw new Error("Interview data not found. Please start a new analysis first.");
+                }
+
+                const jobDetails = JSON.parse(jobDetailsStr);
+                const resumeSkills = JSON.parse(resumeSkillsStr);
+
+                const skillGaps = jobDetails.requiredSkills.filter((skill: string) => !resumeSkills.skills.includes(skill));
+
+                const questionResponse = await generateInterviewQuestions({
+                    jobDescription: jobDescription,
+                    skillGaps: skillGaps,
+                    difficulty: jobDetails.difficultyLevel,
+                });
+                
+                if (!questionResponse || !questionResponse.questions || questionResponse.questions.length === 0) {
+                     throw new Error("Failed to generate interview questions.");
+                }
+
+                const initialQuestions: Question[] = questionResponse.questions.map(q => ({ ...q, status: 'unanswered' }));
+
+                setSessionState({
+                    jobDetails,
+                    resumeSkills,
+                    jobDescription,
+                    questions: initialQuestions,
+                    currentQuestionIndex: 0,
+                    isSessionComplete: false,
+                    isGenerating: false,
+                    error: null,
+                });
+            } catch (err: any) {
+                console.error(err);
+                toast({
+                    variant: "destructive",
+                    title: "Failed to Start Session",
+                    description: err.message || "An unexpected error occurred.",
+                });
+                setSessionState(prev => ({ ...prev, isGenerating: false, error: err.message }));
+            }
+        };
+
+        startSession();
+    }, [toast]);
+    
+    const handleSubmitAnswer = async () => {
+        const { questions, currentQuestionIndex } = sessionState;
+        const currentQuestion = questions[currentQuestionIndex];
+
+        setSessionState(prev => ({
+            ...prev,
+            questions: prev.questions.map((q, i) => i === currentQuestionIndex ? { ...q, status: 'evaluating' } : q)
+        }));
+
+        try {
+            const evaluation = await evaluateUserAnswer({
+                questionText: currentQuestion.questionText,
+                userAnswer: currentAnswer,
+                skill: currentQuestion.skill,
+                difficulty: currentQuestion.difficulty,
+            });
+
+            setSessionState(prev => ({
+                ...prev,
+                questions: prev.questions.map((q, i) =>
+                    i === currentQuestionIndex ? { ...q, status: 'answered', userAnswer: currentAnswer, evaluation } : q
+                )
+            }));
+            setCurrentAnswer('');
+        } catch (err: any) {
+            console.error("Evaluation failed:", err);
+            toast({ variant: 'destructive', title: 'Evaluation Failed', description: 'Could not get feedback from AI.' });
+            setSessionState(prev => ({
+                ...prev,
+                questions: prev.questions.map((q, i) => i === currentQuestionIndex ? { ...q, status: 'unanswered' } : q)
+            }));
         }
     };
+
+    const handleNextQuestion = () => {
+        if (sessionState.currentQuestionIndex < sessionState.questions.length - 1) {
+            setSessionState(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 }));
+        } else {
+            setSessionState(prev => ({ ...prev, isSessionComplete: true }));
+        }
+    };
+
+    if (sessionState.isGenerating) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                 <h2 className="text-2xl font-semibold mb-2">Generating Your Interview...</h2>
+                 <p className="text-muted-foreground">Our AI is crafting personalized questions based on your resume and the job description.</p>
+                 <div className="w-full max-w-md mt-8 space-y-6">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-40 w-full" />
+                 </div>
+            </div>
+        );
+    }
     
-    if (isSessionComplete) {
+    if (sessionState.error) {
          return (
-            <div className="flex-1 flex items-center justify-center p-4">
-                {mode === 'fullPrep' ? <FullPrepSummary summary={mockInterviewData.fullPrep.summary} /> : <QuickSprintSummary summary={mockInterviewData.quickSprint.summary} />}
+            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                 <h2 className="text-2xl font-semibold mb-2 text-destructive">Error</h2>
+                 <p className="text-muted-foreground mb-4">{sessionState.error}</p>
+                 <Button asChild>
+                    <Link href="/analysis/new">Start a New Analysis</Link>
+                 </Button>
             </div>
          )
     }
 
+    if (sessionState.isSessionComplete) {
+        return <SessionSummary questions={sessionState.questions} jobDetails={sessionState.jobDetails} />;
+    }
+
+    const { questions, currentQuestionIndex, jobDetails } = sessionState;
+    const currentQuestion = questions[currentQuestionIndex];
+
     return (
         <div className="p-4 md:p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="fullPrep" className="gap-2"><BookOpen /> Full Prep</TabsTrigger>
-                        <TabsTrigger value="quickSprint" className="gap-2"><Zap /> Quick Sprint</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-                <div className="w-full sm:w-auto">
-                     <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Select a skill" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Skills</SelectItem>
-                            {mockInterviewData.jobInfo.skills.map(skill => (
-                                <SelectItem key={skill} value={skill}>{skill}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
-                             <CardTitle>{mockInterviewData.jobInfo.role}</CardTitle>
-                             <CardDescription>Question {currentQuestionIndex + 1} of {questions.length}</CardDescription>
+                            <CardTitle>{jobDetails?.role || 'Mock Interview'}</CardTitle>
+                            <CardDescription>Question {currentQuestionIndex + 1} of {questions.length}</CardDescription>
                         </div>
-                         <Button variant="outline" size="sm" asChild><Link href="/dashboard"><ArrowLeft/> End Session</Link></Button>
+                        <Button variant="outline" size="sm" asChild><Link href="/dashboard"><ArrowLeft /> End Session</Link></Button>
                     </div>
-                     <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="mt-4" />
+                    <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="mt-4" />
                 </CardHeader>
             </Card>
 
             <div className="grid lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2 space-y-6">
-                    <QuestionCard question={currentQuestion} mode={mode}/>
+                    {currentQuestion && (
+                        <QuestionCard
+                            question={currentQuestion}
+                            answer={currentAnswer}
+                            setAnswer={setCurrentAnswer}
+                            onSubmit={handleSubmitAnswer}
+                            isEvaluating={currentQuestion.status === 'evaluating'}
+                        />
+                    )}
                 </div>
                 <div className="space-y-6 sticky top-20">
-                     {currentQuestion.status === 'answered' ? <EvaluationCard question={currentQuestion} mode={mode} /> : (
-                         <Card className="flex items-center justify-center min-h-[200px]">
+                    {currentQuestion?.status === 'answered' && currentQuestion.evaluation ? (
+                        <EvaluationCard evaluation={currentQuestion.evaluation} />
+                    ) : (
+                        <Card className="flex items-center justify-center min-h-[200px]">
                             <CardContent className="text-center text-muted-foreground p-6">
                                 <p>Your feedback will appear here once you submit an answer.</p>
                             </CardContent>
-                         </Card>
-                     )}
-                     {currentQuestion.status === 'answered' && (
-                         <Button onClick={handleNextQuestion} className="w-full">
+                        </Card>
+                    )}
+                    {currentQuestion?.status === 'answered' && (
+                        <Button onClick={handleNextQuestion} className="w-full">
                             {currentQuestionIndex === questions.length - 1 ? "Finish & View Summary" : "Next Question"}
-                         </Button>
-                     )}
+                        </Button>
+                    )}
                 </div>
             </div>
-
         </div>
     );
 }

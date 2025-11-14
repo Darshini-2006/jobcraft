@@ -65,20 +65,24 @@ export default function NewAnalysisPage() {
     try {
       const resumeDataUri = await fileToDataUri(resumeFile);
       
+      // We run the AI flows in parallel to speed up the process.
       const [resumeSkills, jobDetails] = await Promise.all([
         parseResumeSkills({ resumeDataUri }),
         parseJobDescription({ jobDescription }),
       ]);
 
+      // Store results in session storage to pass them to the interview page.
       sessionStorage.setItem('resumeSkills', JSON.stringify(resumeSkills));
       sessionStorage.setItem('jobDetails', JSON.stringify(jobDetails));
       sessionStorage.setItem('jobDescription', jobDescription);
 
+      // Redirect to the mock interview page.
       window.location.href = '/interview/session';
 
     } catch (error: any) {
       console.error('Analysis failed:', error);
       let description = 'Something went wrong. Please try again.';
+      // Specifically check for a 503 Service Unavailable error from the AI service.
       if (error?.message?.includes('503')) {
         description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
       }
@@ -98,7 +102,7 @@ export default function NewAnalysisPage() {
         <CardHeader>
           <CardTitle>New Mock Interview</CardTitle>
           <CardDescription>
-            Upload your resume and paste a job description to start a mock interview.
+            Upload your resume and paste a job description to start a personalized mock interview.
           </CardDescription>
         </CardHeader>
         <CardContent>
