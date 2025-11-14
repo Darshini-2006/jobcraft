@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 
 const sessions = [
@@ -55,12 +55,20 @@ const sessions = [
 
 export function RecentSessions() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Interview Sessions</CardTitle>
-        <CardDescription>
-          A log of your most recent mock interview practice sessions.
-        </CardDescription>
+    <Card className="xl:col-span-2">
+      <CardHeader className="flex flex-row items-center">
+        <div className="grid gap-2">
+          <CardTitle>Recent Interview Sessions</CardTitle>
+          <CardDescription>
+            A log of your most recent mock interview practice sessions.
+          </CardDescription>
+        </div>
+        <Button asChild size="sm" className="ml-auto gap-1">
+          <Link href="#">
+            View All
+            <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>
@@ -94,7 +102,7 @@ export function RecentSessions() {
               <TableCell className="text-right">
                 <Button variant="outline" size="icon" asChild>
                     <Link href="#">
-                        <ArrowUpRight className="h-4 w-4" />
+                        <BarChart2 className="h-4 w-4" />
                     </Link>
                 </Button>
               </TableCell>

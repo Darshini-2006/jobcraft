@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Bar,
-  BarChart,
-  LabelList,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-  ResponsiveContainer,
-} from 'recharts';
+import { PolarRadiusAxis, RadialBar, RadialBarChart } from 'recharts';
 
 import {
   Card,
@@ -18,33 +10,32 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  ChartContainer,
-} from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
 import { GraduationCap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const chartData = [
-  { month: 'january', desktop: 186, mobile: 80 },
-  { month: 'february', desktop: 305, mobile: 200 },
-  { month: 'march', desktop: 237, mobile: 120 },
-  { month: 'april', desktop: 73, mobile: 190 },
-  { month: 'may', desktop: 209, mobile: 130 },
-  { month: 'june', desktop: 214, mobile: 140 },
-];
+type ReadinessScoreProps = {
+    readinessScore: number;
+}
 
-const chartConfig = {
-  desktop: {
-    label: 'Desktop',
-    color: 'hsl(var(--chart-1))',
-  },
-  mobile: {
-    label: 'Mobile',
-    color: 'hsl(var(--chart-2))',
-  },
-} as const;
+export function ReadinessScore({ readinessScore }: ReadinessScoreProps) {
 
-export function ReadinessScore() {
-    const readinessScore = 78;
+  const chartData = [{ value: readinessScore }];
+
+  const getStatus = () => {
+    if (readinessScore >= 80) {
+      return { text: 'Ready', className: 'text-green-500' };
+    }
+    if (readinessScore >= 50) {
+      return { text: 'Improving', className: 'text-yellow-500' };
+    }
+    return { text: 'Needs Work', className: 'text-red-500' };
+  };
+
+  const status = getStatus();
+  const fillColor = `hsl(var(--${readinessScore >= 80 ? 'primary' : readinessScore >= 50 ? 'chart-4' : 'destructive'}))`;
+
+
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
@@ -55,7 +46,7 @@ export function ReadinessScore() {
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
-          config={chartConfig}
+          config={{}}
           className="mx-auto aspect-square w-full max-w-[250px]"
         >
           <RadialBarChart
@@ -65,59 +56,49 @@ export function ReadinessScore() {
             innerRadius={80}
             outerRadius={110}
             barSize={12}
-            dataKey="desktop"
+            dataKey="value"
           >
             <PolarRadiusAxis
               tick={false}
               tickLine={false}
               axisLine={false}
-            >
-              <LabelList
-                content={({
-                  viewBox,
-                }) => {
-                  if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                    return (
-                      <text
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          className="fill-foreground text-4xl font-bold"
-                        >
-                          {readinessScore}%
-                        </tspan>
-                        <tspan
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground"
-                        >
-                          Ready
-                        </tspan>
-                      </text>
-                    )
-                  }
-                }}
-              />
-            </PolarRadiusAxis>
+              domain={[0, 100]}
+            />
             <RadialBar
-              dataKey="desktop"
+              dataKey="value"
               background
               cornerRadius={10}
-              className="fill-primary"
+              style={{ fill: fillColor }}
             />
+             <text
+                x="50%"
+                y="50%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-foreground"
+              >
+                <tspan
+                  dy="-0.5em"
+                  className="text-4xl font-bold"
+                >
+                  {readinessScore}%
+                </tspan>
+                <tspan
+                  x="50%"
+                  dy="1.5em"
+                  className={cn("text-lg font-medium", status.className)}
+                >
+                  {status.text}
+                </tspan>
+              </text>
           </RadialBarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm pt-2">
-        <div className="flex items-center gap-2 font-medium leading-none">
-          Almost there! Keep up the great work.
+        <div className="flex items-center gap-2 font-medium leading-none text-center">
+            You’re improving—keep practicing your SQL joins.
         </div>
-        <div className="leading-none text-muted-foreground">
+        <div className="leading-none text-muted-foreground text-center">
           Score ≥ 80% is considered ready for interviews.
         </div>
       </CardFooter>
