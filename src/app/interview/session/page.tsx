@@ -85,21 +85,20 @@ function InterviewSession() {
 
   const allQuestions: { type: string; question: string }[] = React.useMemo(() => {
     if (!questions) return [];
-    const tech =
-      questions.technicalQuestions
+  
+    const parseQuestions = (questionString: string | undefined, type: string) => {
+      if (!questionString) return [];
+      return questionString
         .split('\n')
-        .filter((q) => q.startsWith('- '))
-        .map((q) => ({ type: 'Technical', question: q.substring(2) })) || [];
-    const fundamental =
-      questions.fundamentalQuestions
-        .split('\n')
-        .filter((q) => q.startsWith('- '))
-        .map((q) => ({ type: 'Fundamental', question: q.substring(2) })) || [];
-    const scenario =
-      questions.scenarioBasedQuestions
-        .split('\n')
-        .filter((q) => q.startsWith('- '))
-        .map((q) => ({ type: 'Scenario', question: q.substring(2) })) || [];
+        .map(q => q.trim())
+        .filter(q => q.startsWith('- '))
+        .map(q => ({ type, question: q.substring(2).trim() }));
+    };
+  
+    const tech = parseQuestions(questions.technicalQuestions, 'Technical');
+    const fundamental = parseQuestions(questions.fundamentalQuestions, 'Fundamental');
+    const scenario = parseQuestions(questions.scenarioBasedQuestions, 'Scenario');
+  
     return [...tech, ...fundamental, ...scenario];
   }, [questions]);
 
@@ -145,7 +144,7 @@ function InterviewSession() {
         fetchQuestions();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobDescription, toast]);
+  }, [jobDescription]);
 
   const handleSubmitAnswer = async () => {
     if (!userAnswer || !currentQuestion) return;
@@ -365,3 +364,5 @@ export default function InterviewPage() {
         </Suspense>
     )
 }
+
+    

@@ -28,17 +28,13 @@ export type GenerateInterviewQuestionsInput = z.infer<
 const GenerateInterviewQuestionsOutputSchema = z.object({
   technicalQuestions: z
     .string()
-    .describe('Technical interview questions based on the job description.'),
+    .describe('A newline-separated list of technical interview questions, each starting with "- ".'),
   fundamentalQuestions: z
     .string()
-    .describe(
-      'Fundamental interview questions based on the job description.'
-    ),
+    .describe('A newline-separated list of fundamental interview questions, each starting with "- ".'),
   scenarioBasedQuestions: z
     .string()
-    .describe(
-      'Scenario-based interview questions based on the job description.'
-    ),
+    .describe('A newline-separated list of scenario-based interview questions, each starting with "- ".'),
 });
 export type GenerateInterviewQuestionsOutput = z.infer<
   typeof GenerateInterviewQuestionsOutputSchema
@@ -56,25 +52,15 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateInterviewQuestionsOutputSchema},
   prompt: `You are an expert interview question generator for job candidates.
 
-  Based on the job description and the candidate's skill gaps, generate technical, fundamental, and scenario-based interview questions.
+  Based on the job description and the candidate's skill gaps, generate a list of 3 technical, 2 fundamental, and 2 scenario-based interview questions.
 
   Job Description: {{{jobDescription}}}
 
   Skill Gaps: {{{skillGaps}}}
 
-  Format the questions as follows:
-
-  Technical Questions:
-  - [Question 1]
-  - [Question 2]
-
-  Fundamental Questions:
-  - [Question 1]
-  - [Question 2]
-
-  Scenario-Based Questions:
-  - [Question 1]
-  - [Question 2]`,
+  Output a JSON object with three keys: "technicalQuestions", "fundamentalQuestions", and "scenarioBasedQuestions".
+  Each key should have a value of a single string, with each question starting with "- " and separated by a newline.
+  `,
 });
 
 const generateInterviewQuestionsFlow = ai.defineFlow(
@@ -88,3 +74,5 @@ const generateInterviewQuestionsFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
