@@ -15,7 +15,7 @@ const ParseResumeSkillsInputSchema = z.object({
   resumeDataUri: z
     .string()
     .describe(
-      'A resume PDF, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.' // Updated description
+      'A resume PDF, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
 });
 export type ParseResumeSkillsInput = z.infer<typeof ParseResumeSkillsInputSchema>;
@@ -26,6 +26,7 @@ const ParseResumeSkillsOutputSchema = z.object({
     .string()
     .describe('A summary of the experience detailed in the resume.'),
   tools: z.array(z.string()).describe('A list of tools and technologies mentioned in the resume.'),
+  fullText: z.string().describe('The full, raw text extracted from the resume document.'),
 });
 export type ParseResumeSkillsOutput = z.infer<typeof ParseResumeSkillsOutputSchema>;
 
@@ -39,7 +40,7 @@ const prompt = ai.definePrompt({
   name: 'parseResumeSkillsPrompt',
   input: {schema: ParseResumeSkillsInputSchema},
   output: {schema: ParseResumeSkillsOutputSchema},
-  prompt: `You are an expert resume parser. Extract the skills, experience summary, and tools/technologies from the following resume text.\n\nResume: {{media url=resumeDataUri}}`,
+  prompt: `You are an expert resume parser. Extract the skills, experience summary, tools/technologies, and the full raw text from the following resume document.\n\nResume: {{media url=resumeDataUri}}`,
 });
 
 const parseResumeSkillsFlow = ai.defineFlow(
