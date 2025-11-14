@@ -27,7 +27,7 @@ const navItems = [
     label: 'Dashboard',
   },
   {
-    href: '/interview/new',
+    href: '/analysis/new',
     icon: MessageSquare,
     label: 'Mock Interview',
   },
