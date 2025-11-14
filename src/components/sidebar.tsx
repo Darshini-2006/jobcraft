@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Briefcase,
+  FilePenLine,
   LayoutDashboard,
   Menu,
   Settings,
@@ -29,6 +30,11 @@ const navItems = [
     href: '/jobs',
     icon: Briefcase,
     label: 'My Jobs',
+  },
+  {
+    href: '/resume/edit',
+    icon: FilePenLine,
+    label: 'Resume Editor',
   },
   {
     href: '/settings',
