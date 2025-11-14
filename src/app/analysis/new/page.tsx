@@ -67,24 +67,20 @@ export default function NewAnalysisPage() {
     try {
       const resumeDataUri = await fileToDataUri(resumeFile);
 
-      // We can run these in parallel
       const [resumeSkills, jobDetails] = await Promise.all([
         parseResumeSkills({ resumeDataUri }),
         parseJobDescription({ jobDescription }),
       ]);
       
-      // For now, we will just log the results to the console.
-      // In the next step, we will pass this data to a new analysis results page.
-      console.log('Resume Skills:', resumeSkills);
-      console.log('Job Details:', jobDetails);
-
-      // A real implementation would navigate to a results page:
-      // router.push('/analysis/results');
+      const query = {
+        resumeSkills: JSON.stringify(resumeSkills),
+        jobDetails: JSON.stringify(jobDetails),
+        jobDescription,
+      }
       
-      toast({
-        title: 'Analysis Complete',
-        description: 'Your resume and job description have been analyzed.',
-      });
+      const queryString = new URLSearchParams(query).toString();
+
+      router.push(`/interview/session?${queryString}`);
 
     } catch (error) {
       console.error('Analysis failed:', error);
