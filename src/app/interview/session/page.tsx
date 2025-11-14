@@ -1,7 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -45,8 +44,6 @@ import {
 } from 'recharts';
 
 function InterviewSession() {
-  const searchParams = useSearchParams();
-
   const [questions, setQuestions] =
     React.useState<GenerateInterviewQuestionsOutput | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -55,14 +52,21 @@ function InterviewSession() {
   const [isEvaluating, setIsEvaluating] = React.useState(false);
   const [evaluation, setEvaluation] =
     React.useState<EvaluateUserAnswerOutput | null>(null);
+    
+  const [jobDetails, setJobDetails] = React.useState<ParseJobDescriptionOutput | null>(null);
+  const [resumeSkills, setResumeSkills] = React.useState<ParseResumeSkillsOutput | null>(null);
+  const [jobDescription, setJobDescription] = React.useState('');
 
-  const jobDetails: ParseJobDescriptionOutput | null = JSON.parse(
-    searchParams.get('jobDetails') || 'null'
-  );
-  const resumeSkills: ParseResumeSkillsOutput | null = JSON.parse(
-    searchParams.get('resumeSkills') || 'null'
-  );
-  const jobDescription = searchParams.get('jobDescription') || '';
+  useEffect(() => {
+    const jd = sessionStorage.getItem('jobDetails');
+    const rs = sessionStorage.getItem('resumeSkills');
+    const jds = sessionStorage.getItem('jobDescription');
+
+    if (jd) setJobDetails(JSON.parse(jd));
+    if (rs) setResumeSkills(JSON.parse(rs));
+    if (jds) setJobDescription(jds);
+  }, []);
+
 
   const allQuestions: { type: string; question: string }[] = React.useMemo(() => {
     if (!questions) return [];
@@ -113,8 +117,10 @@ function InterviewSession() {
         setIsGenerating(false);
       }
     };
-    fetchQuestions();
-  }, [jobDescription]);
+    if (jobDescription) {
+        fetchQuestions();
+    }
+  }, [jobDescription, jobDetails, resumeSkills]);
 
   const handleSubmitAnswer = async () => {
     if (!userAnswer || !currentQuestion) return;
@@ -150,7 +156,7 @@ function InterviewSession() {
     }
   };
 
-  if (isGenerating) {
+  if (isGenerating || !jobDetails) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
@@ -159,7 +165,7 @@ function InterviewSession() {
         </h2>
         <p className="text-muted-foreground max-w-md">
           Our AI is crafting a personalized set of interview questions based on
-          the role of <span className="font-bold">{jobDetails?.role}</span> and your resume.
+          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.
         </p>
       </div>
     );

@@ -72,15 +72,11 @@ export default function NewAnalysisPage() {
         parseJobDescription({ jobDescription }),
       ]);
       
-      const query = {
-        resumeSkills: JSON.stringify(resumeSkills),
-        jobDetails: JSON.stringify(jobDetails),
-        jobDescription,
-      }
-      
-      const queryString = new URLSearchParams(query).toString();
+      sessionStorage.setItem('resumeSkills', JSON.stringify(resumeSkills));
+      sessionStorage.setItem('jobDetails', JSON.stringify(jobDetails));
+      sessionStorage.setItem('jobDescription', jobDescription);
 
-      router.push(`/interview/session?${queryString}`);
+      router.push(`/interview/session`);
 
     } catch (error) {
       console.error('Analysis failed:', error);
