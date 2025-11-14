@@ -1,425 +1,302 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo } from 'react';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  serverTimestamp,
-  getDocs,
-  query,
-  limit,
-  orderBy,
-  writeBatch,
-} from 'firebase/firestore';
-import { useAuth, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
-import React from 'react';
-import { type ParseResumeSkillsOutput } from '@/ai/flows/parse-resume-skills';
-import { type ParseJobDescriptionOutput } from '@/ai/flows/parse-job-description';
-import {
-  generateInterviewQuestions,
-} from '@/ai/flows/generate-interview-questions';
-import { evaluateUserAnswer } from '@/ai/flows/evaluate-user-answer';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { type WithId, useCollection } from '@/firebase/firestore/use-collection';
-import { type Question } from '@/lib/types';
+import { ArrowLeft, Check, ChevronDown, Loader2, Send, Sparkles, Star, BookOpen, Zap } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Bar, BarChart, ResponsiveContainer } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 
-function InterviewSession() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const auth = useAuth();
+// --- MOCK DATA ---
+const mockInterviewData = {
+  jobInfo: {
+    role: "Senior Frontend Engineer",
+    company: "Vercel",
+    difficulty: "Hard",
+    skills: ["React", "TypeScript", "System Design", "GraphQL", "Next.js"]
+  },
+  fullPrep: {
+    questions: [
+      { id: "q1", skill: "React", questionText: "Explain the difference between a Presentational and a Container component in React.", status: "answered", score: 85, feedback: "Good explanation, but you could have mentioned Hooks as a more modern way to handle state in functional components.", strengths: ["Clear definition", "Mentioned separation of concerns"], weaknesses: ["Did not mention modern patterns (Hooks)"] },
+      { id: "q2", skill: "React", questionText: "How does the virtual DOM work and what are its benefits?", status: "answered", score: 92, feedback: "Excellent answer. You clearly understand the diffing algorithm and performance benefits.", strengths: ["Detailed explanation of diffing", "Correctly identified performance gains"], weaknesses: [] },
+      { id: "q3", skill: "System Design", questionText: "How would you design a scalable notification system?", status: "unanswered" },
+      { id: "q4", skill: "TypeScript", questionText: "What are mapped types in TypeScript and provide an example.", status: "unanswered" },
+      { id: "q5", skill: "Next.js", questionText: "Describe the differences between getServerSideProps, getStaticProps, and Incremental Static Regeneration (ISR).", status: "unanswered" },
+    ],
+    summary: {
+      overallScore: 88,
+      weakestSkill: "System Design",
+      strongestSkill: "React",
+      detailedFeedback: "You have a strong command of React fundamentals. Your main area for improvement is in large-scale system design, where you need to think more about distributed components and trade-offs. Practice more on designing systems like news feeds or notification services.",
+      nextSteps: ["Review common system design patterns.", "Practice a medium-difficulty System Design question on a whiteboard.", "Read about TypeScript's utility types."]
+    }
+  },
+  quickSprint: {
+    questions: [
+        { id: "qs1", skill: "React", questionText: "What is a React Hook?", status: "answered", tag: "Strong", quickFeedback: "Correct and concise.", fundamental: "Core concept of modern React state and lifecycle." },
+        { id: "qs2", skill: "System Design", questionText: "What is a load balancer?", status: "answered", tag: "Medium", quickFeedback: "Good, but could mention different balancing algorithms.", fundamental: "Key component for scalability." },
+        { id: "qs3", skill: "TypeScript", questionText: "What is the difference between an interface and a type in TypeScript?", status: "unanswered" },
+    ],
+    summary: {
+        fundamentals: ["React Hooks", "State Management", "Component Lifecycle", "Load Balancing", "API Design (REST vs GraphQL)"],
+        topQuestions: ["What are the benefits of Next.js?", "How do you handle state in a large React application?", "Explain the CAP theorem.", "What are microservices?", "Describe a recent challenging technical problem you solved."],
+        miniTasks: ["Whiteboard a simple URL shortener service.", "Review the TypeScript handbook on utility types."]
+    }
+  }
+};
+// --- END MOCK DATA ---
 
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [jobDetails, setJobDetails] =
-    useState<ParseJobDescriptionOutput | null>(null);
-  const [isStartingSession, setIsStartingSession] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // State for the current question
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
+type ViewMode = 'full' | 'sprint';
+
+const QuestionCard = ({ question, mode }: { question: any; mode: ViewMode }) => {
+  const [answer, setAnswer] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isAnswered, setIsAnswered] = useState(question.status === 'answered');
 
-  // Fetch questions for the current session
-  const questionsQuery = useMemoFirebase(() => {
-    if (!firestore || !sessionId) return null;
-    return query(collection(firestore, 'sessions', sessionId, 'questions'), orderBy('createdAt', 'asc'));
-  }, [firestore, sessionId]);
-
-  const { data: questions, isLoading: isLoadingQuestions } = useCollection<Question>(questionsQuery);
-  
-  const totalQuestions = questions?.length || 0;
-  const currentQuestion = questions?.[currentQuestionIndex];
-  const isSessionComplete = currentQuestionIndex >= totalQuestions && totalQuestions > 0;
-
-
-  // Start session and generate questions
-  useEffect(() => {
-    if (isUserLoading || !user || !firestore) return;
-
-    const startSession = async () => {
-      setIsStartingSession(true);
-      setError(null);
-      try {
-        const jdString = sessionStorage.getItem('jobDetails');
-        const rsString = sessionStorage.getItem('resumeSkills');
-        const jobDescText = sessionStorage.getItem('jobDescription');
-
-        if (!jdString || !rsString || !jobDescText) {
-          throw new Error('Session data not found. Please start a new analysis.');
-        }
-
-        const jd: ParseJobDescriptionOutput = JSON.parse(jdString);
-        const rs: ParseResumeSkillsOutput = JSON.parse(rsString);
-        setJobDetails(jd);
-
-        // 1. Create a new session document
-        const sessionRef = await addDoc(collection(firestore, 'sessions'), {
-          userId: user.uid,
-          jobDescriptionText: jobDescText,
-          jobDetails: jd,
-          createdAt: serverTimestamp(),
-          currentQuestionIndex: 0,
-          overallScore: null,
-        });
-        setSessionId(sessionRef.id);
-
-        // 2. Generate Questions
-        const skillGaps = jd.requiredSkills.filter(
-          (skill) => !rs.skills.some(userSkill => userSkill.toLowerCase() === skill.toLowerCase())
-        );
-
-        const questionResponse = await generateInterviewQuestions({
-          jobDescription: jobDescText,
-          skillGaps: skillGaps,
-          difficulty: jd.difficultyLevel,
-        });
-
-        if (!questionResponse?.questions) {
-            throw new Error('Could not generate questions. The AI service might be busy. Please try again.');
-        }
-
-        // 3. Save questions to subcollection
-        const batch = writeBatch(firestore);
-        questionResponse.questions.forEach((q) => {
-          const questionRef = doc(collection(firestore, 'sessions', sessionRef.id, 'questions'));
-          batch.set(questionRef, { ...q, userAnswer: '', aiFeedback: '', score: null, createdAt: serverTimestamp() });
-        });
-        await batch.commit();
-
-      } catch (e: any) {
-        console.error('Failed to start session:', e);
-        let description = e.message || 'An unknown error occurred.';
-        if (e?.message?.includes('503')) {
-            description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
-        }
-        setError(description);
-        toast({
-          variant: 'destructive',
-          title: 'Failed to Start Session',
-          description: description,
-        });
-      } finally {
-        setIsStartingSession(false);
-      }
-    };
-
-    startSession();
-  }, [user, firestore, isUserLoading, toast]);
-
-
-  const handleSubmitAnswer = async () => {
-    if (!userAnswer || !currentQuestion || !sessionId || !firestore) return;
+  const handleSubmit = () => {
+    if (!answer) return;
     setIsEvaluating(true);
-
-    try {
-      const result = await evaluateUserAnswer({
-        questionText: currentQuestion.questionText,
-        userAnswer: userAnswer,
-        skill: currentQuestion.skill,
-        difficulty: currentQuestion.difficulty,
-      });
-
-      const questionRef = doc(firestore, 'sessions', sessionId, 'questions', currentQuestion.id);
-      await updateDoc(questionRef, {
-        userAnswer,
-        aiFeedback: result.feedback,
-        score: result.score,
-      });
-
-    } catch (error: any) {
-      console.error('Failed to evaluate answer:', error);
-       let description = 'Something went wrong. Please try again.';
-        if (error?.message?.includes('503')) {
-          description = 'The AI service is temporarily overloaded. Please wait a moment and try submitting again.'
-        }
-        toast({
-          variant: 'destructive',
-          title: 'Evaluation Failed',
-          description: description,
-        });
-    } finally {
+    setTimeout(() => {
       setIsEvaluating(false);
-    }
+      setIsAnswered(true);
+    }, 1500);
   };
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < totalQuestions -1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setUserAnswer('');
-    } else {
-        // Last question was answered, move to summary
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  if (isStartingSession || isUserLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
-        <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-        <h2 className="text-2xl font-semibold mb-2">
-          Preparing Your Mock Interview...
-        </h2>
-        <p className="text-muted-foreground max-w-md">
-          Our AI is crafting a personalized set of interview questions based on
-          the role of <span className="font-bold">{jobDetails?.role || '...'}</span> and your resume.
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
-        <h2 className="text-2xl font-semibold mb-2 text-destructive">
-          Failed to Start Interview
-        </h2>
-        <p className="text-muted-foreground max-w-md">
-         {error}
-        </p>
-         <Button onClick={() => router.push('/analysis/new')} className="mt-4">
-            Start New Analysis
-          </Button>
-      </div>
-    );
-  }
-
-  if (isSessionComplete) {
-    return <SessionSummary questions={questions} jobDetails={jobDetails}/>
-  }
-  
-  const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
-  const answerSubmitted = !!currentQuestion?.aiFeedback;
 
   return (
-    <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
-        <Card className="h-full flex flex-col">
-          <CardHeader>
-            <div className='flex justify-between items-start'>
-                <div>
-                    <CardTitle>Interview for {jobDetails?.role}</CardTitle>
-                    <CardDescription>
-                    Question {currentQuestionIndex + 1} of {totalQuestions}
-                    </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                    <Badge variant="outline">{currentQuestion?.skill}</Badge>
-                    <Badge variant="secondary">{currentQuestion?.type}</Badge>
-                </div>
-            </div>
-            <Progress value={progress} className="mt-2" />
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col gap-6">
-            <div className="p-6 bg-secondary/50 rounded-lg min-h-[100px]">
-                {isLoadingQuestions ? <Loader2 className="animate-spin"/> : 
-                <p className="text-lg font-semibold">
-                    {currentQuestion?.questionText}
-                </p>}
-            </div>
-            
-            <div className="flex-1 flex flex-col gap-2">
-              <label htmlFor="answer" className="font-medium">
-                Your Answer
-              </label>
-              <Textarea
-                id="answer"
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="Type your answer here."
-                className="flex-1 text-base"
-                rows={8}
-                disabled={isEvaluating || answerSubmitted}
-              />
-            </div>
-          </CardContent>
-          <div className="flex justify-between p-4 border-t items-center">
-              <Button variant="outline" onClick={() => router.push('/dashboard')}>
-                <ArrowLeft className="mr-2"/> End Session
-              </Button>
-              {answerSubmitted ? (
-                 <Button onClick={handleNextQuestion}>
-                    {currentQuestionIndex === totalQuestions - 1 ? 'Finish & View Summary' : 'Next Question'} <ArrowRight className="ml-2"/>
-                </Button>
-              ) : (
-                <Button onClick={handleSubmitAnswer} disabled={!userAnswer || isEvaluating || answerSubmitted}>
-                    {isEvaluating ? <><Loader2 className="mr-2 animate-spin"/> Evaluating...</> : <><Check className="mr-2"/>Submit Answer</>}
-                </Button>
-              )}
-            </div>
-        </Card>
-      </div>
-
-      <div className="lg:col-span-1">
-        <Card className='sticky top-20'>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <Sparkles className="text-primary"/>
-                AI Feedback
-            </CardTitle>
-            <CardDescription>
-                Real-time evaluation of your answer.
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Question</CardTitle>
+            <CardDescription className="mt-1">
+              {question.skill}
             </CardDescription>
-          </CardHeader>
-          <CardContent className="min-h-[400px]">
-            {isEvaluating && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                    <p className="font-semibold">Evaluating your answer...</p>
-                </div>
-            )}
-            {!isEvaluating && !answerSubmitted && (
-                 <div className="flex flex-col items-center justify-center h-full text-center p-4 rounded-lg bg-secondary/30">
-                    <p className="font-medium">Your feedback will appear here once you submit your answer.</p>
-                </div>
-            )}
-            {answerSubmitted && (
-                 <div className="space-y-4">
+          </div>
+          <Badge variant="secondary">{mode === 'full' ? "Deep Dive" : "Quick Check"}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-lg font-semibold">{question.questionText}</p>
+        <Textarea
+          placeholder="Your answer..."
+          rows={mode === 'full' ? 8 : 4}
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          disabled={isEvaluating || isAnswered}
+        />
+      </CardContent>
+      <CardFooter className="flex justify-end">
+        {!isAnswered ? (
+          <Button onClick={handleSubmit} disabled={!answer || isEvaluating}>
+            {isEvaluating ? <Loader2 className="animate-spin" /> : <Send />}
+            {isEvaluating ? 'Evaluating...' : 'Submit Answer'}
+          </Button>
+        ) : null}
+      </CardFooter>
+    </Card>
+  );
+};
+
+const EvaluationCard = ({ question, mode }: { question: any, mode: ViewMode }) => (
+    <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary"/> AI Feedback</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            {mode === 'full' ? (
+                <>
                     <div className="text-center">
                         <p className="text-sm text-muted-foreground">Your Score</p>
-                        <p className="text-5xl font-bold">{currentQuestion?.score}%</p>
+                        <p className="text-5xl font-bold">{question.score}%</p>
                     </div>
                     <div>
+                        <h4 className="font-semibold mb-2">Strengths:</h4>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                            {question.strengths.map((s: string) => <li key={s}>{s}</li>)}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2">Areas for Improvement:</h4>
+                         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                            {question.weaknesses.map((w: string) => <li key={w}>{w}</li>)}
+                        </ul>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="text-center">
+                         <Badge variant={question.tag === 'Strong' ? 'default' : question.tag === 'Medium' ? 'secondary' : 'destructive'} className="text-2xl font-bold px-4 py-2">{question.tag}</Badge>
+                    </div>
+                     <div>
                         <h4 className="font-semibold mb-2">Feedback:</h4>
-                        <p className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-md whitespace-pre-wrap">{currentQuestion?.aiFeedback}</p>
+                        <p className="text-sm text-muted-foreground">{question.quickFeedback}</p>
                     </div>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function SessionSummary({ questions, jobDetails }: { questions: WithId<Question>[] | null, jobDetails: ParseJobDescriptionOutput | null }) {
-    const overallScore = useMemo(() => {
-        if (!questions || questions.length === 0) return 0;
-        const total = questions.reduce((sum, q) => sum + (q.score || 0), 0);
-        return Math.round(total / questions.length);
-    }, [questions]);
-
-    const {bestSkill, worstSkill} = useMemo(() => {
-        if (!questions) return { bestSkill: 'N/A', worstSkill: 'N/A' };
-        
-        const skillScores: {[key: string]: {total: number, count: number}} = {};
-        questions.forEach(q => {
-            if (!skillScores[q.skill]) {
-                skillScores[q.skill] = { total: 0, count: 0 };
-            }
-            skillScores[q.skill].total += q.score || 0;
-            skillScores[q.skill].count++;
-        });
-
-        let best = { skill: 'N/A', avg: -1 };
-        let worst = { skill: 'N/A', avg: 101 };
-
-        for (const skill in skillScores) {
-            const avg = skillScores[skill].total / skillScores[skill].count;
-            if (avg > best.avg) {
-                best = { skill, avg };
-            }
-            if (avg < worst.avg) {
-                worst = { skill, avg };
-            }
-        }
-        return { bestSkill: best.skill, worstSkill: worst.skill };
-
-    }, [questions]);
-
-
-    return (
-        <div className="flex justify-center items-center p-4 md:p-6" style={{height: 'calc(100vh - 8rem)'}}>
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle>Session Complete!</CardTitle>
-                    <CardDescription>Here's a summary of your performance for the {jobDetails?.role} interview.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
                     <div>
-                        <p className="text-muted-foreground">Overall Score</p>
-                        <p className="text-7xl font-bold text-primary">{overallScore}%</p>
+                        <h4 className="font-semibold mb-2">Fundamental to Review:</h4>
+                        <p className="text-sm text-muted-foreground">{question.fundamental}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="bg-secondary/50 p-3 rounded-lg">
-                            <p className="font-semibold">Best Performing Skill</p>
-                            <p className="text-primary">{bestSkill}</p>
-                        </div>
-                         <div className="bg-secondary/50 p-3 rounded-lg">
-                            <p className="font-semibold">Skill to Improve</p>
-                            <p className="text-destructive">{worstSkill}</p>
-                        </div>
-                    </div>
-                     <div className="text-left bg-secondary/50 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">AI Summary & Recommendations</h4>
-                        <p className="text-sm text-muted-foreground">
-                            Coming soon: A detailed AI summary of your strengths, weaknesses, and a plan for what to practice next.
-                        </p>
-                    </div>
-                    <div className="flex gap-4 justify-center">
-                        <Button asChild>
-                            <Link href="/dashboard">Go to Dashboard</Link>
-                        </Button>
-                        <Button variant="outline" asChild>
-                           <Link href="/analysis/new">Practice Again</Link>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    )
-}
+                </>
+            )}
+        </CardContent>
+    </Card>
+);
+
+const FullPrepSummary = ({ summary }: { summary: any }) => (
+    <Card className="w-full max-w-3xl">
+        <CardHeader className="text-center">
+            <CardTitle>Full Prep Session Complete!</CardTitle>
+            <CardDescription>Here's a detailed breakdown of your performance.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+             <div className="text-center">
+                <p className="text-sm text-muted-foreground">Overall Score</p>
+                <p className="text-7xl font-bold text-primary">{summary.overallScore}%</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-secondary/50 p-3 rounded-lg text-center">
+                    <p className="font-semibold">Strongest Skill</p>
+                    <p className="text-green-500">{summary.strongestSkill}</p>
+                </div>
+                 <div className="bg-secondary/50 p-3 rounded-lg text-center">
+                    <p className="font-semibold">Weakest Skill</p>
+                    <p className="text-red-500">{summary.weakestSkill}</p>
+                </div>
+            </div>
+            <div>
+                 <h4 className="font-semibold mb-2 text-center">AI Coach Summary</h4>
+                 <p className="text-sm text-muted-foreground italic text-center">"{summary.detailedFeedback}"</p>
+            </div>
+             <div>
+                <h4 className="font-semibold mb-2 text-center">Recommended Next Steps</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground mx-auto max-w-md">
+                    {summary.nextSteps.map((step: string) => <li key={step}>{step}</li>)}
+                </ul>
+            </div>
+        </CardContent>
+        <CardFooter className="flex justify-center gap-4">
+            <Button asChild><Link href="/learning-path">Update Learning Path (Full Prep)</Link></Button>
+            <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
+        </CardFooter>
+    </Card>
+);
+
+const QuickSprintSummary = ({ summary }: { summary: any }) => (
+     <Card className="w-full max-w-3xl">
+        <CardHeader className="text-center">
+            <CardTitle>Quick Sprint Complete!</CardTitle>
+            <CardDescription>Here's your quick boost summary.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h4 className="font-semibold mb-3 text-center flex items-center justify-center gap-2"><Star className="text-yellow-400"/> Top 5 Fundamentals to Review</h4>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        {summary.fundamentals.map((f: string) => <li key={f}>{f}</li>)}
+                    </ul>
+                </div>
+                 <div>
+                    <h4 className="font-semibold mb-3 text-center flex items-center justify-center gap-2"><BookOpen className="text-primary"/> 10 Most Asked Questions</h4>
+                    <ul className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                        {summary.topQuestions.slice(0, 5).map((q: string) => <li key={q}>{q}</li>)}
+                    </ul>
+                </div>
+            </div>
+        </CardContent>
+         <CardFooter className="flex justify-center gap-4">
+            <Button asChild><Link href="/learning-path">Update Learning Path (Quick Sprint)</Link></Button>
+            <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
+        </CardFooter>
+    </Card>
+);
 
 
-export default function InterviewPage() {
-    return (
-        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
-            <InterviewSession />
-        </Suspense>
-    )
-}
+export default function MockInterviewPage() {
+    const [mode, setMode] = useState<ViewMode>('full');
+    const [selectedSkill, setSelectedSkill] = useState('All');
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+    const interviewState = mockInterviewData[mode];
+    const questions = interviewState.questions;
+    const currentQuestion = questions[currentQuestionIndex];
+    const isSessionComplete = currentQuestionIndex >= questions.length;
+
+    const handleNextQuestion = () => {
+        if (currentQuestionIndex < questions.length) {
+            setCurrentQuestionIndex(prev => prev + 1);
+        }
+    };
     
+    if (isSessionComplete) {
+         return (
+            <div className="flex-1 flex items-center justify-center p-4">
+                {mode === 'full' ? <FullPrepSummary summary={mockInterviewData.fullPrep.summary} /> : <QuickSprintSummary summary={mockInterviewData.quickSprint.summary} />}
+            </div>
+         )
+    }
+
+    return (
+        <div className="p-4 md:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="full" className="gap-2"><BookOpen /> Full Prep</TabsTrigger>
+                        <TabsTrigger value="sprint" className="gap-2"><Zap /> Quick Sprint</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <div className="w-full sm:w-auto">
+                     <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Select a skill" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="All">All Skills</SelectItem>
+                            {mockInterviewData.jobInfo.skills.map(skill => (
+                                <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div>
+                             <CardTitle>{mockInterviewData.jobInfo.role}</CardTitle>
+                             <CardDescription>Question {currentQuestionIndex + 1} of {questions.length}</CardDescription>
+                        </div>
+                         <Button variant="outline" size="sm" asChild><Link href="/dashboard"><ArrowLeft/> End Session</Link></Button>
+                    </div>
+                     <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="mt-4" />
+                </CardHeader>
+            </Card>
+
+            <div className="grid lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-2 space-y-6">
+                    <QuestionCard question={currentQuestion} mode={mode}/>
+                </div>
+                <div className="space-y-6 sticky top-20">
+                     {currentQuestion.status === 'answered' ? <EvaluationCard question={currentQuestion} mode={mode} /> : (
+                         <Card className="flex items-center justify-center min-h-[200px]">
+                            <CardContent className="text-center text-muted-foreground p-6">
+                                <p>Your feedback will appear here once you submit an answer.</p>
+                            </CardContent>
+                         </Card>
+                     )}
+                     {currentQuestion.status === 'answered' && (
+                         <Button onClick={handleNextQuestion} className="w-full">
+                            {currentQuestionIndex === questions.length - 1 ? "Finish & View Summary" : "Next Question"}
+                         </Button>
+                     )}
+                </div>
+            </div>
+
+        </div>
+    );
+}
