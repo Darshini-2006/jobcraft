@@ -1,6 +1,19 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  serverTimestamp,
+  getDocs,
+  query,
+  limit,
+  orderBy,
+  writeBatch,
+} from 'firebase/firestore';
+import { useAuth, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import {
   Card,
   CardContent,
@@ -15,158 +28,140 @@ import {
   ArrowRight,
   Check,
   Loader2,
-  RefreshCw,
   Sparkles,
-  Voicemail,
 } from 'lucide-react';
 import React from 'react';
 import { type ParseResumeSkillsOutput } from '@/ai/flows/parse-resume-skills';
 import { type ParseJobDescriptionOutput } from '@/ai/flows/parse-job-description';
 import {
   generateInterviewQuestions,
-  type GenerateInterviewQuestionsOutput,
 } from '@/ai/flows/generate-interview-questions';
-import {
-  evaluateUserAnswer,
-  type EvaluateUserAnswerOutput,
-} from '@/ai/flows/evaluate-user-answer';
+import { evaluateUserAnswer } from '@/ai/flows/evaluate-user-answer';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  LabelList,
-} from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { type WithId, useCollection } from '@/firebase/firestore/use-collection';
+import { type Question } from '@/lib/types';
+import Link from 'next/link';
 
 function InterviewSession() {
-  const [questions, setQuestions] =
-    React.useState<GenerateInterviewQuestionsOutput | null>(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
-  const [userAnswer, setUserAnswer] = React.useState('');
-  const [isGenerating, setIsGenerating] = React.useState(true);
-  const [isEvaluating, setIsEvaluating] = React.useState(false);
-  const [evaluation, setEvaluation] =
-    React.useState<EvaluateUserAnswerOutput | null>(null);
-    
-  const [jobDetails, setJobDetails] = React.useState<ParseJobDescriptionOutput | null>(null);
-  const [resumeSkills, setResumeSkills] = React.useState<ParseResumeSkillsOutput | null>(null);
-  const [jobDescription, setJobDescription] = React.useState('');
-  const { toast } = useToast();
   const router = useRouter();
+  const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const auth = useAuth();
+
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [jobDetails, setJobDetails] =
+    useState<ParseJobDescriptionOutput | null>(null);
+  const [isStartingSession, setIsStartingSession] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // State for the current question
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
+  // Fetch questions for the current session
+  const questionsQuery = useMemoFirebase(() => {
+    if (!firestore || !sessionId) return null;
+    return query(collection(firestore, 'sessions', sessionId, 'questions'), orderBy('createdAt', 'asc'));
+  }, [firestore, sessionId]);
+
+  const { data: questions, isLoading: isLoadingQuestions } = useCollection<Question>(questionsQuery);
+  
+  const totalQuestions = questions?.length || 0;
+  const currentQuestion = questions?.[currentQuestionIndex];
+  const isSessionComplete = currentQuestionIndex >= totalQuestions && totalQuestions > 0;
 
 
+  // Start session and generate questions
   useEffect(() => {
-    try {
-      const jd = sessionStorage.getItem('jobDetails');
-      const rs = sessionStorage.getItem('resumeSkills');
-      const jds = sessionStorage.getItem('jobDescription');
+    if (isUserLoading || !user || !firestore) return;
 
-      if (!jd || !rs || !jds) {
-        router.push('/analysis/new');
-        toast({
-          variant: 'destructive',
-          title: 'Session Expired',
-          description: 'Job and resume data not found. Please start a new analysis.',
-        });
-        return;
-      }
-
-      setJobDetails(JSON.parse(jd));
-      setResumeSkills(JSON.parse(rs));
-      setJobDescription(jds);
-    } catch (error) {
-        console.error('Failed to parse session storage data:', error);
-        router.push('/analysis/new');
-         toast({
-          variant: 'destructive',
-          title: 'Session Error',
-          description: 'Could not load session data. Please start a new analysis.',
-        });
-    }
-  }, [router, toast]);
-
-
-  const allQuestions: { type: string; question: string }[] = React.useMemo(() => {
-    if (!questions) return [];
-  
-    const parseQuestions = (questionString: string | undefined, type: string) => {
-      if (!questionString) return [];
-      return questionString
-        .split('\n')
-        .map(q => q.trim())
-        .filter(q => q.startsWith('- '))
-        .map(q => ({ type, question: q.substring(2).trim() }));
-    };
-  
-    const tech = parseQuestions(questions.technicalQuestions, 'Technical');
-    const fundamental = parseQuestions(questions.fundamentalQuestions, 'Fundamental');
-    const scenario = parseQuestions(questions.scenarioBasedQuestions, 'Scenario');
-  
-    return [...tech, ...fundamental, ...scenario];
-  }, [questions]);
-
-  const currentQuestion = allQuestions[currentQuestionIndex];
-  const totalQuestions = allQuestions.length;
-  const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
-
-
-  const getSkillGaps = () => {
-    if (!jobDetails || !resumeSkills) return 'N/A';
-    const jobSkills = new Set(jobDetails.requiredSkills.map(s => s.toLowerCase()));
-    const userSkills = new Set(resumeSkills.skills.map(s => s.toLowerCase()));
-    const gaps = [...jobSkills].filter(skill => !userSkills.has(skill));
-    return gaps.join(', ') || 'None';
-  };
-
-  React.useEffect(() => {
-    const fetchQuestions = async () => {
-      if (!jobDescription || !jobDetails) return;
-      setIsGenerating(true);
+    const startSession = async () => {
+      setIsStartingSession(true);
+      setError(null);
       try {
-        const result = await generateInterviewQuestions({
-          jobDescription,
-          skillGaps: getSkillGaps(),
-        });
-        setQuestions(result);
-      } catch (error: any) {
-        console.error('Failed to generate questions:', error);
-        let description = 'Something went wrong. Please try again.';
-        if (error?.message?.includes('503')) {
-          description = 'The AI service is temporarily overloaded. Please go back and try the analysis again in a moment.'
+        const jdString = sessionStorage.getItem('jobDetails');
+        const rsString = sessionStorage.getItem('resumeSkills');
+        const jobDescText = sessionStorage.getItem('jobDescription');
+
+        if (!jdString || !rsString || !jobDescText) {
+          throw new Error('Session data not found. Please start a new analysis.');
         }
+
+        const jd: ParseJobDescriptionOutput = JSON.parse(jdString);
+        const rs: ParseResumeSkillsOutput = JSON.parse(rsString);
+        setJobDetails(jd);
+
+        // 1. Create a new session document
+        const sessionRef = await addDoc(collection(firestore, 'sessions'), {
+          userId: user.uid,
+          jobDescriptionText: jobDescText,
+          jobDetails: jd,
+          createdAt: serverTimestamp(),
+          currentQuestionIndex: 0,
+          overallScore: null,
+        });
+        setSessionId(sessionRef.id);
+
+        // 2. Generate Questions
+        const skillGaps = jd.requiredSkills.filter(
+          (skill) => !rs.skills.some(userSkill => userSkill.toLowerCase() === skill.toLowerCase())
+        );
+
+        const questionResponse = await generateInterviewQuestions({
+          jobDescription: jobDescText,
+          skillGaps: skillGaps,
+          difficulty: jd.difficultyLevel,
+        });
+
+        // 3. Save questions to subcollection
+        const batch = writeBatch(firestore);
+        questionResponse.questions.forEach((q) => {
+          const questionRef = doc(collection(firestore, 'sessions', sessionRef.id, 'questions'));
+          batch.set(questionRef, { ...q, userAnswer: '', aiFeedback: '', score: null, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+
+      } catch (e: any) {
+        console.error('Failed to start session:', e);
+        setError(e.message || 'An unknown error occurred.');
         toast({
           variant: 'destructive',
-          title: 'Failed to Generate Questions',
-          description: description,
+          title: 'Failed to Start Session',
+          description: e.message,
         });
       } finally {
-        setIsGenerating(false);
+        setIsStartingSession(false);
       }
     };
-    if (jobDescription && jobDetails) {
-        fetchQuestions();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobDescription, jobDetails, toast]);
+
+    startSession();
+  }, [user, firestore, isUserLoading, toast]);
+
 
   const handleSubmitAnswer = async () => {
-    if (!userAnswer || !currentQuestion || !jobDescription) return;
+    if (!userAnswer || !currentQuestion || !sessionId || !firestore) return;
     setIsEvaluating(true);
-    setEvaluation(null);
+
     try {
       const result = await evaluateUserAnswer({
-        question: currentQuestion.question,
-        answer: userAnswer,
-        jobDescription: jobDescription,
+        questionText: currentQuestion.questionText,
+        userAnswer: userAnswer,
+        skill: currentQuestion.skill,
+        difficulty: currentQuestion.difficulty,
       });
-      setEvaluation(result);
+
+      const questionRef = doc(firestore, 'sessions', sessionId, 'questions', currentQuestion.id);
+      await updateDoc(questionRef, {
+        userAnswer,
+        aiFeedback: result.feedback,
+        score: result.score,
+      });
+
     } catch (error: any) {
       console.error('Failed to evaluate answer:', error);
        let description = 'Something went wrong. Please try again.';
@@ -184,27 +179,21 @@ function InterviewSession() {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < totalQuestions - 1) {
+    if (currentQuestionIndex < totalQuestions -1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');
-      setEvaluation(null);
-    }
-  };
-  
-  const handlePreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setUserAnswer('');
-      setEvaluation(null);
+    } else {
+        // Last question was answered, move to summary
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  if (isGenerating || !jobDetails) {
+  if (isStartingSession || isUserLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
         <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
         <h2 className="text-2xl font-semibold mb-2">
-          Generating Your Interview...
+          Preparing Your Mock Interview...
         </h2>
         <p className="text-muted-foreground max-w-md">
           Our AI is crafting a personalized set of interview questions based on
@@ -214,14 +203,14 @@ function InterviewSession() {
     );
   }
 
-  if (!isGenerating && allQuestions.length === 0) {
+  if (error) {
      return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center" style={{height: 'calc(100vh - 8rem)'}}>
-        <h2 className="text-2xl font-semibold mb-2">
-          Could Not Generate Questions
+        <h2 className="text-2xl font-semibold mb-2 text-destructive">
+          Failed to Start Interview
         </h2>
         <p className="text-muted-foreground max-w-md">
-          There was an issue generating interview questions. This may be due to a temporary service issue.
+         {error}
         </p>
          <Button onClick={() => router.push('/analysis/new')} className="mt-4">
             Start New Analysis
@@ -230,12 +219,12 @@ function InterviewSession() {
     );
   }
 
-  const evaluationData = [
-    { name: 'Accuracy', score: evaluation?.accuracy || 0 },
-    { name: 'Depth', score: evaluation?.depth || 0 },
-    { name: 'Clarity', score: evaluation?.clarity || 0 },
-    { name: 'Relevance', score: evaluation?.relevance || 0 },
-  ];
+  if (isSessionComplete) {
+    return <SessionSummary questions={questions} jobDetails={jobDetails}/>
+  }
+  
+  const progress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
+  const answerSubmitted = !!currentQuestion?.aiFeedback;
 
   return (
     <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -249,15 +238,19 @@ function InterviewSession() {
                     Question {currentQuestionIndex + 1} of {totalQuestions}
                     </CardDescription>
                 </div>
-                <Badge variant="secondary">{currentQuestion?.type}</Badge>
+                <div className="flex gap-2">
+                    <Badge variant="outline">{currentQuestion?.skill}</Badge>
+                    <Badge variant="secondary">{currentQuestion?.type}</Badge>
+                </div>
             </div>
             <Progress value={progress} className="mt-2" />
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-6">
-            <div className="p-6 bg-secondary/50 rounded-lg">
+            <div className="p-6 bg-secondary/50 rounded-lg min-h-[100px]">
+                {isLoadingQuestions ? <Loader2 className="animate-spin"/> : 
                 <p className="text-lg font-semibold">
-                {currentQuestion?.question}
-                </p>
+                    {currentQuestion?.questionText}
+                </p>}
             </div>
             
             <div className="flex-1 flex flex-col gap-2">
@@ -268,37 +261,26 @@ function InterviewSession() {
                 id="answer"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="Type your answer here, or use the voice-to-text feature."
+                placeholder="Type your answer here."
                 className="flex-1 text-base"
                 rows={8}
-                disabled={isEvaluating || !!evaluation}
+                disabled={isEvaluating || answerSubmitted}
               />
-               <div className="flex items-center justify-between mt-2">
-                <p className="text-sm text-muted-foreground">You can use markdown for formatting.</p>
-                <Button variant="ghost" size="icon" disabled>
-                    <Voicemail className="w-5 h-5" />
-                    <span className="sr-only">Voice to text</span>
-                </Button>
-               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={handleSubmitAnswer} disabled={!userAnswer || isEvaluating || !!evaluation} className='flex-1'>
+          </CardContent>
+          <div className="flex justify-between p-4 border-t items-center">
+              <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                <ArrowLeft className="mr-2"/> End Session
+              </Button>
+              {answerSubmitted ? (
+                 <Button onClick={handleNextQuestion}>
+                    {currentQuestionIndex === totalQuestions - 1 ? 'Finish & View Summary' : 'Next Question'} <ArrowRight className="ml-2"/>
+                </Button>
+              ) : (
+                <Button onClick={handleSubmitAnswer} disabled={!userAnswer || isEvaluating || answerSubmitted}>
                     {isEvaluating ? <><Loader2 className="mr-2 animate-spin"/> Evaluating...</> : <><Check className="mr-2"/>Submit Answer</>}
                 </Button>
-                <Button variant="outline" onClick={() => { setUserAnswer(''); setEvaluation(null); }}>
-                    <RefreshCw className="mr-2"/> Try Again
-                </Button>
-            </div>
-            
-          </CardContent>
-          <div className="flex justify-between p-4 border-t">
-              <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
-                <ArrowLeft className="mr-2"/> Previous
-              </Button>
-              <Button onClick={handleNextQuestion} disabled={currentQuestionIndex === totalQuestions - 1 || !evaluation}>
-                Next <ArrowRight className="ml-2"/>
-              </Button>
+              )}
             </div>
         </Card>
       </div>
@@ -314,51 +296,29 @@ function InterviewSession() {
                 Real-time evaluation of your answer.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-h-[400px]">
             {isEvaluating && (
-                <div className="flex flex-col items-center justify-center h-64 text-center">
+                <div className="flex flex-col items-center justify-center h-full text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
                     <p className="font-semibold">Evaluating your answer...</p>
                 </div>
             )}
-            {!isEvaluating && !evaluation && (
-                 <div className="flex flex-col items-center justify-center h-64 text-center p-4 rounded-lg bg-secondary/30">
+            {!isEvaluating && !answerSubmitted && (
+                 <div className="flex flex-col items-center justify-center h-full text-center p-4 rounded-lg bg-secondary/30">
                     <p className="font-medium">Your feedback will appear here once you submit your answer.</p>
                 </div>
             )}
-            {evaluation && (
-                <Tabs defaultValue="overview">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="details">Details</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="overview" className="mt-4">
-                        <div className="space-y-4">
-                            <div className="text-center">
-                                <p className="text-sm text-muted-foreground">Overall Score</p>
-                                <p className="text-5xl font-bold">{evaluation.score}%</p>
-                            </div>
-                            <div>
-                                <h4 className="font-semibold mb-2">Feedback:</h4>
-                                <p className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-md">{evaluation.feedback}</p>
-                            </div>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="details">
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={evaluationData} layout="vertical" margin={{ left: 10, right: 30}}>
-                                    <XAxis type="number" domain={[0, 100]} hide />
-                                    <YAxis type="category" dataKey="name" width={70} tickLine={false} axisLine={false} />
-                                    <Tooltip cursor={{ fill: 'hsl(var(--secondary))' }} contentStyle={{ background: 'hsl(var(--background))' }} />
-                                    <Bar dataKey="score" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
-                                        <LabelList dataKey="score" position="right" formatter={(value: number) => `${value}%`} />
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </TabsContent>
-                </Tabs>
+            {answerSubmitted && (
+                 <div className="space-y-4">
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Your Score</p>
+                        <p className="text-5xl font-bold">{currentQuestion?.score}%</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold mb-2">Feedback:</h4>
+                        <p className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-md whitespace-pre-wrap">{currentQuestion?.aiFeedback}</p>
+                    </div>
+                </div>
             )}
           </CardContent>
         </Card>
@@ -366,6 +326,85 @@ function InterviewSession() {
     </div>
   );
 }
+
+function SessionSummary({ questions, jobDetails }: { questions: WithId<Question>[] | null, jobDetails: ParseJobDescriptionOutput | null }) {
+    const overallScore = useMemo(() => {
+        if (!questions || questions.length === 0) return 0;
+        const total = questions.reduce((sum, q) => sum + (q.score || 0), 0);
+        return Math.round(total / questions.length);
+    }, [questions]);
+
+    const {bestSkill, worstSkill} = useMemo(() => {
+        if (!questions) return { bestSkill: 'N/A', worstSkill: 'N/A' };
+        
+        const skillScores: {[key: string]: {total: number, count: number}} = {};
+        questions.forEach(q => {
+            if (!skillScores[q.skill]) {
+                skillScores[q.skill] = { total: 0, count: 0 };
+            }
+            skillScores[q.skill].total += q.score || 0;
+            skillScores[q.skill].count++;
+        });
+
+        let best = { skill: 'N/A', avg: -1 };
+        let worst = { skill: 'N/A', avg: 101 };
+
+        for (const skill in skillScores) {
+            const avg = skillScores[skill].total / skillScores[skill].count;
+            if (avg > best.avg) {
+                best = { skill, avg };
+            }
+            if (avg < worst.avg) {
+                worst = { skill, avg };
+            }
+        }
+        return { bestSkill: best.skill, worstSkill: worst.skill };
+
+    }, [questions]);
+
+
+    return (
+        <div className="flex justify-center items-center p-4 md:p-6" style={{height: 'calc(100vh - 8rem)'}}>
+            <Card className="w-full max-w-2xl text-center">
+                <CardHeader>
+                    <CardTitle>Session Complete!</CardTitle>
+                    <CardDescription>Here's a summary of your performance for the {jobDetails?.role} interview.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <p className="text-muted-foreground">Overall Score</p>
+                        <p className="text-7xl font-bold text-primary">{overallScore}%</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="bg-secondary/50 p-3 rounded-lg">
+                            <p className="font-semibold">Best Performing Skill</p>
+                            <p className="text-primary">{bestSkill}</p>
+                        </div>
+                         <div className="bg-secondary/50 p-3 rounded-lg">
+                            <p className="font-semibold">Skill to Improve</p>
+                            <p className="text-destructive">{worstSkill}</p>
+                        </div>
+                    </div>
+                     <div className="text-left bg-secondary/50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">AI Summary & Recommendations</h4>
+                        <p className="text-sm text-muted-foreground">
+                            Coming soon: A detailed AI summary of your strengths, weaknesses, and a plan for what to practice next.
+                        </p>
+                    </div>
+                    <div className="flex gap-4 justify-center">
+                        <Button asChild>
+                            <Link href="/dashboard">Go to Dashboard</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                           <Link href="/analysis/new">Practice Again</Link>
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 
 export default function InterviewPage() {
     return (

@@ -5,6 +5,7 @@
  *
  * - generateInterviewQuestions - A function that generates interview questions.
  * - GenerateInterviewQuestionsInput - The input type for the generateInterviewQuestions function.
+ * - Question - The individual question type in the output.
  * - GenerateInterviewQuestionsOutput - The return type for the generateInterviewQuestions function.
  */
 
@@ -16,25 +17,25 @@ const GenerateInterviewQuestionsInputSchema = z.object({
     .string()
     .describe('The text of the job description to generate questions for.'),
   skillGaps: z
-    .string()
+    .array(z.string())
     .describe(
-      'A description of the skill gaps between the user and the job description.'
+      'A list of skill gaps between the user and the job description.'
     ),
+    difficulty: z.string().describe("The difficulty of the job (e.g. 'medium')")
 });
 export type GenerateInterviewQuestionsInput = z.infer<
   typeof GenerateInterviewQuestionsInputSchema
 >;
 
+const QuestionSchema = z.object({
+  questionText: z.string().describe('The text of the interview question.'),
+  skill: z.string().describe('The primary skill this question targets.'),
+  difficulty: z.enum(['easy', 'medium', 'hard']).describe('The difficulty of the question.'),
+  type: z.enum(['technical', 'conceptual', 'scenario', 'edge-case']).describe('The type of question.'),
+});
+
 const GenerateInterviewQuestionsOutputSchema = z.object({
-  technicalQuestions: z
-    .string()
-    .describe('A newline-separated list of technical interview questions, each starting with "- ".'),
-  fundamentalQuestions: z
-    .string()
-    .describe('A newline-separated list of fundamental interview questions, each starting with "- ".'),
-  scenarioBasedQuestions: z
-    .string()
-    .describe('A newline-separated list of scenario-based interview questions, each starting with "- ".'),
+  questions: z.array(QuestionSchema).describe('An array of generated interview questions.'),
 });
 export type GenerateInterviewQuestionsOutput = z.infer<
   typeof GenerateInterviewQuestionsOutputSchema
@@ -52,14 +53,21 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateInterviewQuestionsOutputSchema},
   prompt: `You are an expert interview question generator for job candidates.
 
-  Based on the job description and the candidate's skill gaps, generate a list of 3 technical, 2 fundamental, and 2 scenario-based interview questions.
+  Based on the job description, the candidate's skill gaps, and the job difficulty, generate a list of 7 interview questions.
 
+  The question distribution should be:
+  - 3 technical questions
+  - 2 conceptual questions
+  - 1 scenario-based question
+  - 1 tricky or edge-case question
+
+  Job Difficulty: {{{difficulty}}}
   Job Description: {{{jobDescription}}}
+  Skill Gaps to focus on: {{{json skillGaps}}}
 
-  Skill Gaps: {{{skillGaps}}}
+  For each question, provide the question text, the main skill it targets, the question's difficulty (easy, medium, hard), and the type of question.
 
-  Output a JSON object with three keys: "technicalQuestions", "fundamentalQuestions", and "scenarioBasedQuestions".
-  Each key should have a value of a single string, with each question starting with "- " and separated by a newline.
+  Output a JSON object that strictly conforms to the GenerateInterviewQuestionsOutput schema.
   `,
 });
 

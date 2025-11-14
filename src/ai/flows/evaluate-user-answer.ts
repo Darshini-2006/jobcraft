@@ -12,19 +12,16 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const EvaluateUserAnswerInputSchema = z.object({
-  question: z.string().describe('The interview question asked.'),
-  answer: z.string().describe('The user\'s answer to the question.'),
-  jobDescription: z.string().describe('The job description for the role.'),
+  questionText: z.string().describe('The interview question that was asked.'),
+  userAnswer: z.string().describe("The user's answer to the question."),
+  skill: z.string().describe('The skill the question is testing.'),
+  difficulty: z.string().describe('The expected difficulty of the answer.'),
 });
 export type EvaluateUserAnswerInput = z.infer<typeof EvaluateUserAnswerInputSchema>;
 
 const EvaluateUserAnswerOutputSchema = z.object({
-  accuracy: z.number().describe('The accuracy of the answer (0-100).'),
-  depth: z.number().describe('The depth of the answer (0-100).'),
-  clarity: z.number().describe('The clarity of the answer (0-100).'),
-  relevance: z.number().describe('The relevance of the answer (0-100).'),
-  feedback: z.string().describe('Feedback on how to improve the answer.'),
-  score: z.number().describe('Overall score for the answer (0-100).'),
+  score: z.number().min(0).max(100).describe('A score for the answer, from 0 to 100.'),
+  feedback: z.string().describe('Detailed feedback on the answer, highlighting strengths and areas for improvement.'),
 });
 export type EvaluateUserAnswerOutput = z.infer<typeof EvaluateUserAnswerOutputSchema>;
 
@@ -36,20 +33,19 @@ const evaluateUserAnswerPrompt = ai.definePrompt({
   name: 'evaluateUserAnswerPrompt',
   input: {schema: EvaluateUserAnswerInputSchema},
   output: {schema: EvaluateUserAnswerOutputSchema},
-  prompt: `You are an expert interview evaluator. Evaluate the user's answer to the interview question based on the following criteria:
+  prompt: `You are an expert interview evaluator. Evaluate the user's answer to the interview question.
 
-Accuracy: How accurate is the answer?
-Depth: How deep does the answer go into the topic?
-Clarity: How clear is the answer?
-Relevance: How relevant is the answer to the question and the job description?
+Job Role Context: The user is preparing for an interview.
+Skill being tested: {{{skill}}}
+Question Difficulty: {{{difficulty}}}
 
-Provide a score (0-100) for each criterion and overall, along with feedback on how to improve the answer.
+Question:
+"{{{questionText}}}"
 
-Job Description: {{{jobDescription}}}
+User's Answer:
+"{{{userAnswer}}}"
 
-Question: {{{question}}}
-
-Answer: {{{answer}}}
+Based on the question, skill, and difficulty, provide a score from 0-100 and detailed feedback. The feedback should be constructive, highlighting both strengths and specific areas for improvement.
 
 Output should be a JSON object that conforms to EvaluateUserAnswerOutputSchema.
 `,
