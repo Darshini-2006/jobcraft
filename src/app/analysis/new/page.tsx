@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,9 +13,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { UploadCloud } from 'lucide-react';
+import { FileCheck, UploadCloud } from 'lucide-react';
 
 export default function NewAnalysisPage() {
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setResumeFile(event.target.files[0]);
+    }
+  };
+
   return (
     <div className="flex justify-center items-start p-4 md:p-6">
       <Card className="w-full max-w-3xl">
@@ -31,19 +40,36 @@ export default function NewAnalysisPage() {
               <Label htmlFor="resume">Resume (PDF)</Label>
               <div className="flex items-center gap-4">
                 <div className="w-full relative border-2 border-dashed border-muted-foreground/50 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-primary transition-colors">
-                  <UploadCloud className="w-10 h-10 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-primary">
-                      Click to upload
-                    </span>{' '}
-                    or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">PDF up to 10MB</p>
+                  {resumeFile ? (
+                    <>
+                      <FileCheck className="w-10 h-10 text-primary mb-4" />
+                      <p className="text-sm font-semibold text-primary">
+                        {resumeFile.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        File uploaded successfully!
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-10 h-10 text-muted-foreground mb-4" />
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-semibold text-primary">
+                          Click to upload
+                        </span>{' '}
+                        or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF up to 10MB
+                      </p>
+                    </>
+                  )}
                   <Input
                     id="resume"
                     type="file"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     accept=".pdf"
+                    onChange={handleFileChange}
                   />
                 </div>
               </div>
