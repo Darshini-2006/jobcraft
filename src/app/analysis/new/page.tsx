@@ -80,7 +80,7 @@ export default function NewAnalysisPage() {
     } catch (error: any) {
       console.error('Analysis failed:', error);
       let description = 'Something went wrong. Please try again.';
-      if (error.message && error.message.includes('503')) {
+      if (error?.message?.includes('503')) {
         description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
       }
       toast({
