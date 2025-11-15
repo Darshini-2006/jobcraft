@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, Loader2, Send, Sparkles, Star, BookOpen, Zap } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
@@ -13,8 +12,11 @@ import { generateInterviewQuestions, GenerateInterviewQuestionsOutput } from '@/
 import { evaluateUserAnswer, EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 
 type Question = GenerateInterviewQuestionsOutput['questions'][0] & {
+    id?: string; // Firestore document ID
     status: 'answered' | 'unanswered' | 'evaluating';
     userAnswer?: string;
     evaluation?: EvaluateUserAnswerOutput;
@@ -29,6 +31,7 @@ type SessionState = {
     isSessionComplete: boolean;
     isGenerating: boolean;
     error: string | null;
+    sessionId: string | null;
 };
 
 const QuestionCard = ({ question, answer, setAnswer, onSubmit, isEvaluating }: { question: Question; answer: string; setAnswer: (a: string) => void; onSubmit: () => void; isEvaluating: boolean }) => {
@@ -85,11 +88,13 @@ const EvaluationCard = ({ evaluation }: { evaluation: EvaluateUserAnswerOutput }
     </Card>
 );
 
-const SessionSummary = ({ questions, jobDetails }: { questions: Question[], jobDetails: any }) => {
+const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question[], jobDetails: any, onSave: () => Promise<void> }) => {
+    const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
+
     const totalScore = questions.reduce((acc, q) => acc + (q.evaluation?.score || 0), 0);
     const averageScore = Math.round(totalScore / questions.length);
 
-    // Group scores by skill
     const skillScores: { [key: string]: { scores: number[], count: number } } = {};
     questions.forEach(q => {
         if (!q.evaluation) return;
@@ -107,6 +112,21 @@ const SessionSummary = ({ questions, jobDetails }: { questions: Question[], jobD
 
     const weakestSkill = skillAverages[0];
     const strongestSkill = skillAverages[skillAverages.length - 1];
+    
+    const handleFinish = async () => {
+        setIsSaving(true);
+        try {
+            await onSave();
+            toast({ title: "Session Saved!", description: "Your progress has been updated on the dashboard." });
+            // Redirect after a short delay
+            setTimeout(() => window.location.href = '/dashboard', 1000);
+        } catch (error) {
+            console.error("Failed to save session:", error);
+            toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save session data.' });
+            setIsSaving(false);
+        }
+    };
+
 
     return (
         <div className="flex-1 flex items-center justify-center p-4">
@@ -130,16 +150,12 @@ const SessionSummary = ({ questions, jobDetails }: { questions: Question[], jobD
                             <p className="text-red-500">{weakestSkill?.skill} ({weakestSkill?.average}%)</p>
                         </div>
                     </div>
-                    <div>
-                        <h4 className="font-semibold mb-2 text-center">Next Steps</h4>
-                        <p className="text-sm text-muted-foreground italic text-center">
-                            Your performance data will be used to update your dashboard and learning path.
-                        </p>
-                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-center gap-4">
-                    <Button asChild><Link href="/learning-path">View Learning Path</Link></Button>
-                    <Button variant="outline" asChild><Link href="/dashboard">Go to Dashboard</Link></Button>
+                    <Button onClick={handleFinish} disabled={isSaving}>
+                        {isSaving && <Loader2 className="animate-spin mr-2" />}
+                        Finish & Go to Dashboard
+                    </Button>
                 </CardFooter>
             </Card>
         </div>
@@ -148,6 +164,9 @@ const SessionSummary = ({ questions, jobDetails }: { questions: Question[], jobD
 
 export default function MockInterviewPage() {
     const { toast } = useToast();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
     const [sessionState, setSessionState] = useState<SessionState>({
         jobDetails: null,
         resumeSkills: null,
@@ -157,11 +176,14 @@ export default function MockInterviewPage() {
         isSessionComplete: false,
         isGenerating: true,
         error: null,
+        sessionId: null,
     });
     const [currentAnswer, setCurrentAnswer] = useState('');
 
     useEffect(() => {
         const startSession = async () => {
+            if (!user || !firestore) return;
+
             try {
                 const jobDetailsStr = sessionStorage.getItem('jobDetails');
                 const resumeSkillsStr = sessionStorage.getItem('resumeSkills');
@@ -174,11 +196,36 @@ export default function MockInterviewPage() {
                 const jobDetails = JSON.parse(jobDetailsStr);
                 const resumeSkills = JSON.parse(resumeSkillsStr);
 
-                const skillGaps = jobDetails.requiredSkills.filter((skill: string) => !resumeSkills.skills.includes(skill));
+                // Create skill gap analysis and save to Firestore
+                const matchedSkills = resumeSkills.skills.filter((skill: string) => jobDetails.requiredSkills.includes(skill));
+                const missingSkills = jobDetails.requiredSkills.filter((skill: string) => !resumeSkills.skills.includes(skill));
+
+                const skillGapRef = collection(firestore, 'skill_gaps');
+                await addDocumentNonBlocking(skillGapRef, {
+                    userId: user.uid,
+                    jobDescriptionId: jobDetails.role, // Assuming role is unique for now
+                    matchedSkills,
+                    missingSkills,
+                    createdAt: serverTimestamp(),
+                });
+
+                // Create a new session document
+                const sessionRef = collection(firestore, 'sessions');
+                const newSession = {
+                    userId: user.uid,
+                    jobDescriptionId: jobDetails.role,
+                    createdAt: serverTimestamp(),
+                    currentQuestionIndex: 0,
+                    overallScore: null,
+                    skillScores: {},
+                    readinessPercentage: null,
+                };
+                const sessionDoc = await addDocumentNonBlocking(sessionRef, newSession);
+                if (!sessionDoc?.id) throw new Error("Could not create session.");
 
                 const questionResponse = await generateInterviewQuestions({
                     jobDescription: jobDescription,
-                    skillGaps: skillGaps,
+                    skillGaps: missingSkills,
                     difficulty: jobDetails.difficultyLevel,
                 });
                 
@@ -197,11 +244,11 @@ export default function MockInterviewPage() {
                     isSessionComplete: false,
                     isGenerating: false,
                     error: null,
+                    sessionId: sessionDoc.id,
                 });
             } catch (err: any) {
                 console.error(err);
                 let description = err.message || "An unexpected error occurred.";
-                // Specifically check for a 503 Service Unavailable error from the AI service.
                 if (err?.message?.includes('503')) {
                     description = 'The AI service is temporarily overloaded. Please wait a moment and try again.'
                 }
@@ -216,10 +263,11 @@ export default function MockInterviewPage() {
         };
 
         startSession();
-    }, [toast]);
+    }, [toast, user, firestore]);
     
     const handleSubmitAnswer = async () => {
-        const { questions, currentQuestionIndex } = sessionState;
+        const { questions, currentQuestionIndex, sessionId } = sessionState;
+        if (!sessionId) return;
         const currentQuestion = questions[currentQuestionIndex];
 
         setSessionState(prev => ({
@@ -259,6 +307,64 @@ export default function MockInterviewPage() {
             setSessionState(prev => ({ ...prev, isSessionComplete: true }));
         }
     };
+    
+    const handleSaveSession = async () => {
+        if (!user || !firestore || !sessionState.sessionId) {
+            throw new Error("Cannot save session. User or session not initialized.");
+        }
+        
+        const { questions, sessionId } = sessionState;
+
+        // 1. Save all questions to the subcollection
+        const questionsRef = collection(firestore, 'sessions', sessionId, 'questions');
+        for (const q of questions) {
+            if (q.status === 'answered') {
+                await addDocumentNonBlocking(questionsRef, {
+                    skill: q.skill,
+                    difficulty: q.difficulty,
+                    questionText: q.questionText,
+                    userAnswer: q.userAnswer,
+                    aiFeedback: q.evaluation?.feedback,
+                    score: q.evaluation?.score,
+                });
+            }
+        }
+
+        // 2. Calculate final scores
+        const totalScore = questions.reduce((acc, q) => acc + (q.evaluation?.score || 0), 0);
+        const overallScore = Math.round(totalScore / questions.length);
+
+        const skillScores: { [key: string]: number } = {};
+        const skillCounts: { [key: string]: number } = {};
+        questions.forEach(q => {
+            if (q.evaluation) {
+                skillScores[q.skill] = (skillScores[q.skill] || 0) + q.evaluation.score;
+                skillCounts[q.skill] = (skillCounts[q.skill] || 0) + 1;
+            }
+        });
+        const finalSkillScores: { [key: string]: number } = {};
+        for (const skill in skillScores) {
+            finalSkillScores[skill] = Math.round(skillScores[skill] / skillCounts[skill]);
+        }
+        
+        // 3. Update the session document
+        const sessionDocRef = doc(firestore, 'sessions', sessionId);
+        await setDocumentNonBlocking(sessionDocRef, {
+            overallScore,
+            skillScores: finalSkillScores,
+            readinessPercentage: overallScore, // Simplified for now
+            completedAt: serverTimestamp(),
+            // summary: 'AI summary would go here' // TODO: Add AI summary generation flow
+        }, { merge: true });
+
+        // 4. Update the user's main readiness score
+        const userDocRef = doc(firestore, 'users', user.uid);
+        await setDocumentNonBlocking(userDocRef, {
+            readinessScore: overallScore,
+            email: user.email,
+            id: user.uid,
+        }, { merge: true });
+    };
 
     if (sessionState.isGenerating) {
         return (
@@ -287,7 +393,7 @@ export default function MockInterviewPage() {
     }
 
     if (sessionState.isSessionComplete) {
-        return <SessionSummary questions={sessionState.questions} jobDetails={sessionState.jobDetails} />;
+        return <SessionSummary questions={sessionState.questions} jobDetails={sessionState.jobDetails} onSave={handleSaveSession} />;
     }
 
     const { questions, currentQuestionIndex, jobDetails } = sessionState;

@@ -18,42 +18,20 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 
-const sessions = [
-    {
-        id: "1",
-        role: "Senior Frontend Engineer",
-        company: "Vercel",
-        date: "June 28, 2024",
-        score: 78,
-        difficulty: "Hard"
-    },
-    {
-        id: "2",
-        role: "Full Stack Developer",
-        company: "Firebase",
-        date: "June 26, 2024",
-        score: 72,
-        difficulty: "Medium"
-    },
-    {
-        id: "3",
-        role: "Software Engineer",
-        company: "Google",
-        date: "June 24, 2024",
-        score: 65,
-        difficulty: "Hard"
-    },
-    {
-        id: "4",
-        role: "Junior React Developer",
-        company: "Startup Inc.",
-        date: "June 21, 2024",
-        score: 85,
-        difficulty: "Easy"
-    }
-]
+type Session = {
+  id: string;
+  jobDescriptionId: string;
+  createdAt: { seconds: number };
+  overallScore: number;
+  difficulty: string; // This might need to be fetched from the job description
+};
 
-export function RecentSessions() {
+type RecentSessionsProps = {
+  sessions: Session[];
+};
+
+
+export function RecentSessions({ sessions }: RecentSessionsProps) {
   return (
     <Card className="xl:col-span-2">
       <CardHeader className="flex flex-row items-center">
@@ -87,21 +65,18 @@ export function RecentSessions() {
             {sessions.map(session => (
             <TableRow key={session.id}>
               <TableCell>
-                <div className="font-medium">{session.role}</div>
-                <div className="hidden text-sm text-muted-foreground md:inline">
-                  {session.company}
-                </div>
+                <div className="font-medium">{session.jobDescriptionId}</div>
               </TableCell>
               <TableCell className="hidden sm:table-cell">
                 <Badge className="text-xs" variant={session.difficulty === 'Hard' ? 'destructive' : session.difficulty === 'Medium' ? 'secondary' : 'default'}>
-                  {session.difficulty}
+                  {session.difficulty || 'N/A'}
                 </Badge>
               </TableCell>
-              <TableCell className="hidden sm:table-cell">{session.date}</TableCell>
-              <TableCell className="text-right">{session.score}%</TableCell>
+              <TableCell className="hidden sm:table-cell">{new Date(session.createdAt.seconds * 1000).toLocaleDateString()}</TableCell>
+              <TableCell className="text-right">{session.overallScore || 0}%</TableCell>
               <TableCell className="text-right">
                 <Button variant="outline" size="icon" asChild>
-                    <Link href="#">
+                    <Link href={`/interview/summary/${session.id}`}>
                         <BarChart2 className="h-4 w-4" />
                     </Link>
                 </Button>
