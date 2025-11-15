@@ -109,28 +109,50 @@ const getResourcesForSkill = (skillName: string) => {
 
 export default function LearningPathPage() {
     const [mode, setMode] = useState<ViewMode>('full');
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const { user } = useUser();
     const firestore = useFirestore();
 
-    // Fetch all sessions for this user (we'll filter completed ones in memory)
+    // Fetch all completed sessions for this user
     const sessionsQuery = useMemo(() => {
         if (!user || !firestore) return null;
         return query(
             collection(firestore, 'sessions'),
             where('userId', '==', user.uid),
             orderBy('createdAt', 'desc'),
-            limit(10) // Get last 10 sessions to find completed ones
+            limit(50) // Get more sessions to show all job roles
         );
     }, [user, firestore]);
 
     const { data: sessions, isLoading, error } = useCollection<SessionData>(sessionsQuery);
     
-    // Filter for completed sessions and get the latest one
-    const latestSession = useMemo(() => {
-        if (!sessions) return null;
-        const completedSessions = sessions.filter(s => s.completedAt != null);
-        return completedSessions[0] || null;
+    // Filter for completed sessions only
+    const completedSessions = useMemo(() => {
+        if (!sessions) return [];
+        return sessions.filter(s => s.completedAt != null);
     }, [sessions]);
+
+    // Get the selected session or default to the latest
+    const selectedSession = useMemo(() => {
+        if (!completedSessions.length) return null;
+        if (selectedSessionId) {
+            return completedSessions.find(s => s.id === selectedSessionId) || completedSessions[0];
+        }
+        return completedSessions[0];
+    }, [completedSessions, selectedSessionId]);
+
+    // Group sessions by job role for the sidebar
+    const sessionsByRole = useMemo(() => {
+        const grouped: { [key: string]: SessionData[] } = {};
+        completedSessions.forEach(session => {
+            const role = session.jobRole || 'Unknown Role';
+            if (!grouped[role]) {
+                grouped[role] = [];
+            }
+            grouped[role].push(session);
+        });
+        return grouped;
+    }, [completedSessions]);
 
     // Debug logging
     console.log('Learning Path Debug:', { 
@@ -138,16 +160,17 @@ export default function LearningPathPage() {
         firestore: !!firestore, 
         isLoading, 
         allSessions: sessions?.length,
-        completedSessions: sessions?.filter(s => s.completedAt != null).length,
-        latestSession,
+        completedSessions: completedSessions.length,
+        selectedSession,
+        sessionsByRole,
         error: error?.message 
     });
 
     // Transform Firestore data into skills array
     const skills = useMemo(() => {
-        if (!latestSession?.skillGaps) return [];
+        if (!selectedSession?.skillGaps) return [];
         
-        return Object.entries(latestSession.skillGaps).map(([name, gap]) => ({
+        return Object.entries(selectedSession.skillGaps).map(([name, gap]) => ({
             name,
             resumeLevel: gap.resumeLevel,
             requiredLevel: gap.requiredLevel,
@@ -156,7 +179,7 @@ export default function LearningPathPage() {
             rating: gap.currentScore,
             explanation: gap.explanation || `Current performance: ${gap.currentScore}%. ${gap.gapScore > 60 ? 'Significant improvement needed.' : gap.gapScore > 30 ? 'Some improvement recommended.' : 'Good foundation, refine further.'}`
         })).sort((a, b) => b.gapScore - a.gapScore); // Sort by gap score (highest first)
-    }, [latestSession]);
+    }, [selectedSession]);
 
     const topSkills = skills.slice(0, 3);
 
@@ -205,7 +228,7 @@ export default function LearningPathPage() {
     }
 
     // Show "no data" message when loaded but no session found
-    if (!latestSession) {
+    if (!selectedSession) {
         return (
             <div className="p-4 md:p-6">
                 <Card className="max-w-2xl mx-auto">
@@ -228,13 +251,68 @@ export default function LearningPathPage() {
         );
     }
 
+    const JobRoleSelector = () => (
+        <Card>
+            <CardHeader>
+                <CardTitle>Job Roles</CardTitle>
+                <CardDescription>
+                    Select a role to view its learning path
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    {Object.entries(sessionsByRole).map(([role, roleSessions]) => (
+                        <div key={role} className="space-y-1">
+                            <button
+                                onClick={() => setSelectedSessionId(roleSessions[0].id)}
+                                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                                    selectedSession?.jobRole === role 
+                                        ? 'bg-primary text-primary-foreground' 
+                                        : 'bg-muted hover:bg-muted/80'
+                                }`}
+                            >
+                                <div className="font-semibold">{role}</div>
+                                {roleSessions[0].jobCompany && (
+                                    <div className="text-xs opacity-80">{roleSessions[0].jobCompany}</div>
+                                )}
+                                <div className="text-xs mt-1">
+                                    Score: {roleSessions[0].overallScore}% • {roleSessions.length} session{roleSessions.length > 1 ? 's' : ''}
+                                </div>
+                            </button>
+                            {roleSessions.length > 1 && selectedSession?.jobRole === role && (
+                                <div className="ml-4 space-y-1">
+                                    {roleSessions.slice(1).map((session) => (
+                                        <button
+                                            key={session.id}
+                                            onClick={() => setSelectedSessionId(session.id)}
+                                            className={`w-full text-left p-2 rounded text-sm transition-colors ${
+                                                selectedSession?.id === session.id
+                                                    ? 'bg-primary/20 text-primary'
+                                                    : 'hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <span>Attempt {roleSessions.indexOf(session) + 1}</span>
+                                                <span className="text-xs">{session.overallScore}%</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    );
+
     const SkillGapOverview = () => (
         <Card>
             <CardHeader>
                 <CardTitle>Skill Gap Overview</CardTitle>
                 <CardDescription>
-                    Skills for "{latestSession?.jobRole || 'Latest Role'}"
-                    {latestSession?.jobCompany && ` at ${latestSession.jobCompany}`}
+                    Skills for "{selectedSession?.jobRole || 'Latest Role'}"
+                    {selectedSession?.jobCompany && ` at ${selectedSession.jobCompany}`}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -354,7 +432,7 @@ export default function LearningPathPage() {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">Overall Score:</span>
-                                    <span className="text-2xl font-bold">{latestSession?.overallScore || 0}%</span>
+                                    <span className="text-2xl font-bold">{selectedSession?.overallScore || 0}%</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-muted-foreground">Skills Tested:</span>
@@ -391,8 +469,12 @@ export default function LearningPathPage() {
 
     return (
         <div className="p-4 md:p-6 space-y-6">
-            <div className="flex justify-center">
-                 <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold">Learning Paths</h1>
+                    <p className="text-muted-foreground">Prepare for multiple job roles simultaneously</p>
+                </div>
+                <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="full" className="gap-2"><BookOpen className="h-5 w-5"/> Full Prep</TabsTrigger>
                         <TabsTrigger value="sprint" className="gap-2"><Zap className="h-5 w-5"/> Quick Sprint</TabsTrigger>
@@ -400,8 +482,11 @@ export default function LearningPathPage() {
                 </Tabs>
             </div>
            
-            <div className="grid lg:grid-cols-4 gap-6 items-start">
-                 <div className="lg:col-span-1 lg:sticky top-20">
+            <div className="grid lg:grid-cols-5 gap-6 items-start">
+                 <div className="lg:col-span-1 space-y-6">
+                    <JobRoleSelector />
+                 </div>
+                 <div className="lg:col-span-1">
                     <SkillGapOverview />
                  </div>
                  <div className="lg:col-span-3">
