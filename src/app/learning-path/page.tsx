@@ -6,8 +6,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Zap, BookOpen, Video, Code, FileText, Target, Clock } from 'lucide-react';
+import { CheckCircle, Zap, BookOpen, Video, Code, FileText, Target, Clock, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useUser, useCollection, useFirestore } from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+
+type ViewMode = 'full' | 'sprint';
+
+interface SkillGap {
+    resumeLevel: number;
+    requiredLevel: number;
+    gapScore: number;
+    priority: string;
+    currentScore: number;
+    explanation?: string;
+    resources?: Array<{ type: string; title: string; url: string }>;
+}
+
+interface SessionData {
+    id: string;
+    skillGaps: { [key: string]: SkillGap };
+    overallScore: number;
+    jobRole: string;
+    jobCompany: string;
+    completedAt: any;
+}
 
 // --- MOCK DATA ---
 const mockLearningData = {
@@ -56,7 +81,7 @@ const mockLearningData = {
 
 type ViewMode = 'full' | 'sprint';
 
-const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low') => {
+const getPriorityBadge = (priority: string) => {
     switch (priority) {
         case 'High': return 'destructive';
         case 'Medium': return 'secondary';
@@ -65,33 +90,165 @@ const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low') => {
     }
 }
 
-const getRatingColor = (rating: number) => {
-    if (rating <= 1) return 'bg-red-500';
-    if (rating <= 3) return 'bg-yellow-500';
+const getRatingColor = (score: number) => {
+    if (score <= 40) return 'bg-red-500';
+    if (score <= 70) return 'bg-yellow-500';
     return 'bg-green-500';
 }
 
+const getResourcesForSkill = (skillName: string) => {
+    const resourceMap: { [key: string]: any[] } = {
+        'default': [
+            { type: 'video', title: `${skillName} Tutorial`, url: `https://www.youtube.com/results?search_query=${encodeURIComponent(skillName + ' tutorial')}`, icon: Video },
+            { type: 'article', title: `${skillName} Documentation`, url: `https://www.google.com/search?q=${encodeURIComponent(skillName + ' documentation')}`, icon: FileText },
+            { type: 'practice', title: `${skillName} Practice`, url: `https://www.google.com/search?q=${encodeURIComponent(skillName + ' practice problems')}`, icon: Code },
+        ]
+    };
+    return resourceMap[skillName] || resourceMap['default'];
+};
+
 export default function LearningPathPage() {
     const [mode, setMode] = useState<ViewMode>('full');
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    // Fetch all sessions for this user (we'll filter completed ones in memory)
+    const sessionsQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(
+            collection(firestore, 'sessions'),
+            where('userId', '==', user.uid),
+            orderBy('createdAt', 'desc'),
+            limit(10) // Get last 10 sessions to find completed ones
+        );
+    }, [user, firestore]);
+
+    const { data: sessions, isLoading, error } = useCollection<SessionData>(sessionsQuery);
+    
+    // Filter for completed sessions and get the latest one
+    const latestSession = useMemo(() => {
+        if (!sessions) return null;
+        const completedSessions = sessions.filter(s => s.completedAt != null);
+        return completedSessions[0] || null;
+    }, [sessions]);
+
+    // Debug logging
+    console.log('Learning Path Debug:', { 
+        user: user?.uid, 
+        firestore: !!firestore, 
+        isLoading, 
+        allSessions: sessions?.length,
+        completedSessions: sessions?.filter(s => s.completedAt != null).length,
+        latestSession,
+        error: error?.message 
+    });
+
+    // Transform Firestore data into skills array
+    const skills = useMemo(() => {
+        if (!latestSession?.skillGaps) return [];
+        
+        return Object.entries(latestSession.skillGaps).map(([name, gap]) => ({
+            name,
+            resumeLevel: gap.resumeLevel,
+            requiredLevel: gap.requiredLevel,
+            gapScore: gap.gapScore,
+            priority: gap.priority,
+            rating: gap.currentScore,
+            explanation: gap.explanation || `Current performance: ${gap.currentScore}%. ${gap.gapScore > 60 ? 'Significant improvement needed.' : gap.gapScore > 30 ? 'Some improvement recommended.' : 'Good foundation, refine further.'}`
+        })).sort((a, b) => b.gapScore - a.gapScore); // Sort by gap score (highest first)
+    }, [latestSession]);
+
+    const topSkills = skills.slice(0, 3);
+
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="p-4 md:p-6 space-y-6">
+                <Skeleton className="h-12 w-64 mx-auto" />
+                <div className="grid lg:grid-cols-4 gap-6">
+                    <Skeleton className="h-96" />
+                    <div className="lg:col-span-3 space-y-4">
+                        <Skeleton className="h-24" />
+                        <Skeleton className="h-24" />
+                        <Skeleton className="h-24" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error if Firestore query failed
+    if (error) {
+        return (
+            <div className="p-4 md:p-6">
+                <Card className="max-w-2xl mx-auto">
+                    <CardHeader>
+                        <div className="flex items-center gap-2 text-destructive">
+                            <AlertCircle className="h-6 w-6" />
+                            <CardTitle>Error Loading Learning Path</CardTitle>
+                        </div>
+                        <CardDescription>
+                            {error.message || 'Unable to fetch your learning path data. Please try again.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            If this error persists, you may need to complete a new mock interview session.
+                        </p>
+                        <Button asChild>
+                            <Link href="/analysis/new">Start New Mock Interview</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    // Show "no data" message when loaded but no session found
+    if (!latestSession) {
+        return (
+            <div className="p-4 md:p-6">
+                <Card className="max-w-2xl mx-auto">
+                    <CardHeader>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <AlertCircle className="h-6 w-6" />
+                            <CardTitle>No Learning Path Available</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Complete a mock interview session to generate your personalized learning path.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/analysis/new">Start Mock Interview</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     const SkillGapOverview = () => (
         <Card>
             <CardHeader>
                 <CardTitle>Skill Gap Overview</CardTitle>
-                <CardDescription>Your skills compared to the "Senior Frontend Engineer" role at Vercel.</CardDescription>
+                <CardDescription>
+                    Skills for "{latestSession?.jobRole || 'Latest Role'}"
+                    {latestSession?.jobCompany && ` at ${latestSession.jobCompany}`}
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {mockLearningData.skills.map(skill => (
+                    {skills.map(skill => (
                         <div key={skill.name}>
                             <div className="flex justify-between items-center mb-1">
                                 <span className="font-semibold">{skill.name}</span>
-                                <Badge variant={getPriorityBadge(skill.priority as any)}>{skill.priority} Priority</Badge>
+                                <Badge variant={getPriorityBadge(skill.priority) as any}>{skill.priority} Priority</Badge>
                             </div>
-                            <Progress value={(skill.rating / 5) * 100} className="h-3" />
+                            <Progress value={skill.rating} className="h-3" />
                             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                <span>Your Level: {skill.resumeLevel}</span>
-                                <span>Required: {skill.requiredLevel}</span>
+                                <span>Score: {skill.rating}%</span>
+                                <span>Gap: {skill.gapScore}%</span>
                             </div>
                         </div>
                     ))}
@@ -103,13 +260,13 @@ export default function LearningPathPage() {
     const FullPrepMode = () => (
         <div className="space-y-6">
             <Accordion type="single" collapsible className="w-full" defaultValue='item-0'>
-                 {mockLearningData.skills.map((skill, index) => (
+                 {skills.map((skill, index) => (
                     <AccordionItem key={skill.name} value={`item-${index}`}>
                         <AccordionTrigger className="text-lg font-semibold hover:no-underline">
                             <div className="flex items-center gap-4">
                                 <div className={`w-4 h-4 rounded-full ${getRatingColor(skill.rating)}`}></div>
                                 {skill.name}
-                                <Badge variant={getPriorityBadge(skill.priority as any)}>{skill.priority}</Badge>
+                                <Badge variant={getPriorityBadge(skill.priority) as any}>{skill.priority}</Badge>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4 bg-card rounded-b-md border-t-0">
@@ -118,7 +275,7 @@ export default function LearningPathPage() {
                                 <div>
                                     <h4 className="font-semibold mb-2 flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary"/> Learning Resources</h4>
                                     <div className="space-y-2">
-                                        {(mockLearningData.fullPrep.resources as any)[skill.name]?.map((res: any) => (
+                                        {getResourcesForSkill(skill.name).map((res: any) => (
                                              <a href={res.url} key={res.title} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors">
                                                 <res.icon className="h-5 w-5 text-muted-foreground" />
                                                 <span className="text-sm font-medium text-primary hover:underline">{res.title}</span>
@@ -127,16 +284,23 @@ export default function LearningPathPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Target className="h-5 w-5 text-primary"/> Project Suggestion</h4>
-                                    {(mockLearningData.fullPrep.projects as any)[skill.name] ? (
-                                        <div className="p-3 rounded-md bg-muted/50">
-                                            <p className="font-semibold">{(mockLearningData.fullPrep.projects as any)[skill.name].name}</p>
-                                            <p className="text-sm text-muted-foreground mt-1">{(mockLearningData.fullPrep.projects as any)[skill.name].description}</p>
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                {(mockLearningData.fullPrep.projects as any)[skill.name].techStack.map((tech: string) => <Badge variant="secondary" key={tech}>{tech}</Badge>)}
+                                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Target className="h-5 w-5 text-primary"/> Current Performance</h4>
+                                    <div className="p-3 rounded-md bg-muted/50">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-sm">Interview Score:</span>
+                                                <span className="font-semibold">{skill.rating}%</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm">Skill Gap:</span>
+                                                <span className="font-semibold">{skill.gapScore}%</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm">Priority:</span>
+                                                <Badge variant={getPriorityBadge(skill.priority) as any}>{skill.priority}</Badge>
                                             </div>
                                         </div>
-                                    ) : <p className="text-sm text-muted-foreground">No specific project suggestion for this skill.</p>}
+                                    </div>
                                 </div>
                             </div>
                         </AccordionContent>
@@ -147,7 +311,6 @@ export default function LearningPathPage() {
     );
     
     const QuickSprintMode = () => {
-        const topSkillsData = mockLearningData.skills.filter(s => mockLearningData.quickSprint.topSkills.includes(s.name));
         return (
              <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -157,24 +320,23 @@ export default function LearningPathPage() {
                              <CardDescription>Focus on these high-impact areas for quick improvement.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                        {topSkillsData.map(skill => {
-                            const resources = (mockLearningData.quickSprint.resources as any)[skill.name];
-                            if (!resources) return null;
+                        {topSkills.map(skill => {
+                            const resources = getResourcesForSkill(skill.name);
                             return (
                                 <Card key={skill.name}>
                                     <CardHeader className="p-4">
-                                         <CardTitle className="text-lg">{skill.name}</CardTitle>
+                                         <div className="flex justify-between items-center">
+                                            <CardTitle className="text-lg">{skill.name}</CardTitle>
+                                            <Badge variant={getPriorityBadge(skill.priority) as any}>{skill.priority}</Badge>
+                                         </div>
+                                         <CardDescription>Current Score: {skill.rating}% • Gap: {skill.gapScore}%</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0 grid sm:grid-cols-3 gap-2 text-sm">
-                                        <a href={resources.video.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                            <Video className="h-4 w-4 text-primary" /> <span className="font-medium">Quick Video</span>
-                                        </a>
-                                         <a href={resources.cheatsheet.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                            <FileText className="h-4 w-4 text-primary" /> <span className="font-medium">Cheatsheet</span>
-                                        </a>
-                                         <a href={resources.practice.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                            <Code className="h-4 w-4 text-primary" /> <span className="font-medium">Practice</span>
-                                        </a>
+                                        {resources.map((res: any) => (
+                                            <a key={res.title} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors">
+                                                <res.icon className="h-4 w-4 text-primary" /> <span className="font-medium">{res.type === 'video' ? 'Video' : res.type === 'article' ? 'Docs' : 'Practice'}</span>
+                                            </a>
+                                        ))}
                                     </CardContent>
                                 </Card>
                             )
@@ -185,13 +347,24 @@ export default function LearningPathPage() {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Top 5 Questions</CardTitle>
-                            <CardDescription>Be ready for these common questions.</CardDescription>
+                            <CardTitle>Performance Summary</CardTitle>
+                            <CardDescription>Latest mock interview results</CardDescription>
                         </CardHeader>
                         <CardContent>
-                           <ul className="space-y-3 text-sm list-disc list-inside">
-                                {mockLearningData.quickSprint.topQuestions.slice(0,5).map(q => <li key={q}>{q}</li>)}
-                           </ul>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Overall Score:</span>
+                                    <span className="text-2xl font-bold">{latestSession?.overallScore || 0}%</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Skills Tested:</span>
+                                    <span className="font-semibold">{skills.length}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">High Priority:</span>
+                                    <span className="font-semibold">{skills.filter(s => s.priority === 'High').length}</span>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                      <Card>
@@ -201,8 +374,12 @@ export default function LearningPathPage() {
                         </CardHeader>
                         <CardContent>
                            <ul className="space-y-3 text-sm">
-                               <li className="flex items-start gap-2"><Clock className="h-4 w-4 mt-0.5 text-primary"/><span>Review the Kubernetes pod lifecycle diagram.</span></li>
-                               <li className="flex items-start gap-2"><Clock className="h-4 w-4 mt-0.5 text-primary"/><span>Whiteboard the main components of a caching system.</span></li>
+                               {topSkills.slice(0, 3).map((skill, idx) => (
+                                   <li key={idx} className="flex items-start gap-2">
+                                       <Clock className="h-4 w-4 mt-0.5 text-primary"/>
+                                       <span>Review {skill.name} fundamentals and key concepts.</span>
+                                   </li>
+                               ))}
                            </ul>
                         </CardContent>
                     </Card>

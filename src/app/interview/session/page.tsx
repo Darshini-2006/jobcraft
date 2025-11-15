@@ -8,22 +8,14 @@ import { ArrowLeft, Loader2, Sparkles, Lock, FileText, CheckCircle, XCircle } fr
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
-import { generateInterviewQuestions, GenerateInterviewQuestionsOutput } from '@/ai/flows/generate-interview-questions';
-import { evaluateUserAnswer, EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@/firebase/provider';
 import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
-
-
-type Question = GenerateInterviewQuestionsOutput['questions'][0] & {
-    id?: string; // Firestore document ID
-    status: 'answered' | 'unanswered' | 'evaluating';
-    userAnswer?: string;
-    evaluation?: EvaluateUserAnswerOutput;
-};
+import { generateQuestionsAction, evaluateAnswerAction, Question } from './actions';
+import type { EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
 
 type SessionState = {
     jobDetails: any;
@@ -302,17 +294,17 @@ export default function MockInterviewPage() {
                 const sessionDoc = await addDocumentNonBlocking(sessionRef, newSession);
                 if (!sessionDoc?.id) throw new Error("Could not create session.");
 
-                const questionResponse = await generateInterviewQuestions({
+                const result = await generateQuestionsAction({
                     jobDescription: jobDescription,
                     skillGaps: missingSkills,
                     difficulty: jobDetails.difficultyLevel,
                 });
                 
-                if (!questionResponse || !questionResponse.questions || questionResponse.questions.length === 0) {
-                     throw new Error("Failed to generate interview questions.");
+                if (!result.success || !result.questions || result.questions.length === 0) {
+                     throw new Error(result.error || "Failed to generate interview questions.");
                 }
 
-                const initialQuestions: Question[] = questionResponse.questions.map(q => ({ ...q, status: 'unanswered' }));
+                const initialQuestions: Question[] = result.questions.map(q => ({ ...q, status: 'unanswered' }));
 
                 setSessionState({
                     jobDetails,
@@ -356,17 +348,21 @@ export default function MockInterviewPage() {
         }));
 
         try {
-            const evaluation = await evaluateUserAnswer({
+            const result = await evaluateAnswerAction({
                 questionText: currentQuestion.questionText,
                 userAnswer: currentAnswer,
                 skill: currentQuestion.skill,
                 difficulty: currentQuestion.difficulty,
             });
 
+            if (!result.success || !result.evaluation) {
+                throw new Error(result.error || 'Evaluation failed');
+            }
+
             setSessionState(prev => ({
                 ...prev,
                 questions: prev.questions.map((q, i) =>
-                    i === currentQuestionIndex ? { ...q, status: 'answered', userAnswer: currentAnswer, evaluation } : q
+                    i === currentQuestionIndex ? { ...q, status: 'answered', userAnswer: currentAnswer, evaluation: result.evaluation } : q
                 )
             }));
             setCurrentAnswer('');
@@ -393,7 +389,7 @@ export default function MockInterviewPage() {
             throw new Error("Cannot save session. User or session not initialized.");
         }
         
-        const { questions, sessionId } = sessionState;
+        const { questions, sessionId, jobDetails, resumeSkills } = sessionState;
 
         // 1. Save all questions to the subcollection
         const questionsRef = collection(firestore, 'sessions', sessionId, 'questions');
@@ -426,23 +422,112 @@ export default function MockInterviewPage() {
         for (const skill in skillScores) {
             finalSkillScores[skill] = Math.round(skillScores[skill] / skillCounts[skill]);
         }
+
+        // 3. Generate comprehensive learning path based on performance
+        const skillGaps: { [key: string]: { 
+            resumeLevel: number; 
+            requiredLevel: number; 
+            gapScore: number; 
+            priority: string; 
+            currentScore: number;
+            explanation: string;
+            resources: Array<{ type: string; title: string; url: string }>;
+        } } = {};
         
-        // 3. Update the session document
+        const requiredSkills = jobDetails?.requiredSkills || [];
+        const userSkills = resumeSkills?.skills || [];
+        
+        requiredSkills.forEach((skill: string) => {
+            const hasSkill = userSkills.includes(skill);
+            const currentScore = finalSkillScores[skill] || 0;
+            const resumeLevel = hasSkill ? 3 : 0;
+            const requiredLevel = 5;
+            const gapScore = hasSkill ? Math.round((1 - currentScore / 100) * 100) : 100;
+            
+            let priority = 'Low';
+            if (gapScore > 60) priority = 'High';
+            else if (gapScore > 30) priority = 'Medium';
+            
+            // Generate explanation based on performance
+            let explanation = '';
+            if (currentScore >= 80) {
+                explanation = `Excellent performance (${currentScore}%)! Continue refining your expertise.`;
+            } else if (currentScore >= 60) {
+                explanation = `Good foundation (${currentScore}%). Focus on advanced concepts and real-world applications.`;
+            } else if (currentScore >= 40) {
+                explanation = `Moderate knowledge (${currentScore}%). Significant improvement needed through structured learning.`;
+            } else {
+                explanation = `Limited experience (${currentScore}%). This is a critical gap that requires immediate attention.`;
+            }
+            
+            // Generate learning resources
+            const resources = [
+                { 
+                    type: 'video', 
+                    title: `${skill} Tutorial`, 
+                    url: `https://www.youtube.com/results?search_query=${encodeURIComponent(skill + ' tutorial')}` 
+                },
+                { 
+                    type: 'article', 
+                    title: `${skill} Documentation`, 
+                    url: `https://www.google.com/search?q=${encodeURIComponent(skill + ' documentation')}` 
+                },
+                { 
+                    type: 'practice', 
+                    title: `${skill} Practice Problems`, 
+                    url: `https://www.google.com/search?q=${encodeURIComponent(skill + ' practice problems')}` 
+                },
+            ];
+            
+            skillGaps[skill] = {
+                resumeLevel,
+                requiredLevel,
+                gapScore,
+                priority,
+                currentScore,
+                explanation,
+                resources,
+            };
+        });
+        
+        // 4. Update the session document with complete learning path data
         const sessionDocRef = doc(firestore, 'sessions', sessionId);
         await setDocumentNonBlocking(sessionDocRef, {
             overallScore,
             skillScores: finalSkillScores,
-            readinessPercentage: overallScore, // Simplified for now
+            skillGaps,
+            readinessPercentage: overallScore,
             completedAt: serverTimestamp(),
-            // summary: 'AI summary would go here' // TODO: Add AI summary generation flow
+            jobRole: jobDetails?.role || 'Unknown',
+            jobCompany: jobDetails?.company || '',
+            totalQuestions: questions.length,
+            questionsAnswered: questions.filter(q => q.status === 'answered').length,
         }, { merge: true });
 
-        // 4. Update the user's main readiness score
+        // 5. Create a dedicated learning_paths document for easier retrieval
+        const learningPathRef = collection(firestore, 'learning_paths');
+        await addDocumentNonBlocking(learningPathRef, {
+            userId: user.uid,
+            sessionId: sessionId,
+            jobRole: jobDetails?.role || 'Unknown',
+            jobCompany: jobDetails?.company || '',
+            overallScore,
+            skillGaps,
+            topPrioritySkills: Object.entries(skillGaps)
+                .filter(([_, gap]) => gap.priority === 'High')
+                .map(([skill, _]) => skill),
+            createdAt: serverTimestamp(),
+            status: 'active',
+        });
+
+        // 6. Update the user's main readiness score
         const userDocRef = doc(firestore, 'users', user.uid);
         await setDocumentNonBlocking(userDocRef, {
             readinessScore: overallScore,
             email: user.email,
             id: user.uid,
+            lastSessionId: sessionId,
+            lastUpdated: serverTimestamp(),
         }, { merge: true });
     };
 
