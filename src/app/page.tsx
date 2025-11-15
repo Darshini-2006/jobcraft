@@ -67,10 +67,10 @@ export default function LandingPage() {
           <div className="flex flex-1 items-center justify-end space-x-4">
             <nav className="flex items-center space-x-2">
               <Button variant="ghost" asChild>
-                <Link href="/dashboard">Login</Link>
+                <Link href="/auth">Login</Link>
               </Button>
               <Button asChild>
-                <Link href="/dashboard">Get Started</Link>
+                <Link href="/auth">Get Started</Link>
               </Button>
             </nav>
           </div>
@@ -90,7 +90,7 @@ export default function LandingPage() {
                 interviews to get you job-ready.
               </p>
               <Button size="lg" asChild>
-                <Link href="/dashboard">
+                <Link href="/auth">
                   Start Your Career Sprint <MoveRight className="ml-2" />
                 </Link>
               </Button>

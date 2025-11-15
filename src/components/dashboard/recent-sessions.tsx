@@ -62,27 +62,35 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sessions.map(session => (
-            <TableRow key={session.id}>
-              <TableCell>
-                <div className="font-medium">{session.jobDescriptionId}</div>
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                <Badge className="text-xs" variant={session.difficulty === 'Hard' ? 'destructive' : session.difficulty === 'Medium' ? 'secondary' : 'default'}>
-                  {session.difficulty || 'N/A'}
-                </Badge>
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">{new Date(session.createdAt.seconds * 1000).toLocaleDateString()}</TableCell>
-              <TableCell className="text-right">{session.overallScore || 0}%</TableCell>
-              <TableCell className="text-right">
-                <Button variant="outline" size="icon" asChild>
-                    <Link href={`/interview/summary/${session.id}`}>
+            {sessions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                  No interview sessions yet. Start your first mock interview to see results here.
+                </TableCell>
+              </TableRow>
+            ) : (
+              sessions.map(session => (
+                <TableRow key={session.id}>
+                  <TableCell>
+                    <div className="font-medium truncate max-w-[200px]">{session.jobDescriptionId}</div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge className="text-xs" variant={session.difficulty === 'Hard' ? 'destructive' : session.difficulty === 'Medium' ? 'secondary' : 'default'}>
+                      {session.difficulty || 'N/A'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">{new Date(session.createdAt.seconds * 1000).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right font-medium">{session.overallScore || 0}%</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="icon" asChild>
+                      <Link href={`/interview/summary/${session.id}`}>
                         <BarChart2 className="h-4 w-4" />
-                    </Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-            ))}
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

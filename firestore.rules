@@ -47,11 +47,11 @@ service cloud.firestore {
      * @principle Enforces document ownership based on the 'userId' field in the resume.
      */
     match /resumes/{resumeId} {
-      allow get: if request.auth.uid == resource.data.userId;
-      allow list: if request.auth.uid != null;
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow update: if request.auth.uid == resource.data.userId;
-      allow delete: if request.auth.uid == resource.data.userId;
+      allow get: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     /**
@@ -77,11 +77,11 @@ service cloud.firestore {
      * @principle Enforces document ownership based on the 'userId' field.
      */
     match /skill_gaps/{skillGapId} {
-      allow get: if request.auth.uid == resource.data.userId;
-      allow list: if request.auth.uid != null;
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow update: if request.auth.uid == resource.data.userId;
-      allow delete: if request.auth.uid == resource.data.userId;
+      allow get: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     /**
@@ -92,11 +92,11 @@ service cloud.firestore {
      * @principle Enforces document ownership based on the 'userId' field in the session.
      */
     match /sessions/{sessionId} {
-      allow get: if request.auth.uid == resource.data.userId;
-      allow list: if request.auth.uid != null;
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow update: if request.auth.uid == resource.data.userId;
-      allow delete: if request.auth.uid == resource.data.userId;
+      allow get: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow list: if request.auth != null && request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     /**

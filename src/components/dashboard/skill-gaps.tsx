@@ -35,18 +35,26 @@ export function SkillGaps({ skillGap }: SkillGapsProps) {
             <div>
                 <h3 className="text-md mb-2 font-semibold">Matched Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                    {(skillGap?.matchedSkills || []).map(skill => (
+                    {(skillGap?.matchedSkills || []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No matched skills yet</p>
+                    ) : (
+                      (skillGap?.matchedSkills || []).map(skill => (
                         <Badge key={skill} variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-green-300/50">{skill}</Badge>
-                    ))}
+                      ))
+                    )}
                 </div>
             </div>
             <Separator />
             <div>
                 <h3 className="text-md mb-2 font-semibold">Missing Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                    {(skillGap?.missingSkills || []).map(skill => (
+                    {(skillGap?.missingSkills || []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No missing skills identified</p>
+                    ) : (
+                      (skillGap?.missingSkills || []).map(skill => (
                         <Badge key={skill} variant="destructive">{skill}</Badge>
-                    ))}
+                      ))
+                    )}
                 </div>
             </div>
         </div>

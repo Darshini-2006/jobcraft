@@ -249,6 +249,12 @@ export default function MockInterviewPage() {
 
     useEffect(() => {
         const startSession = async () => {
+            // First check if user and firestore are ready
+            if (!user || !firestore) {
+                // Still loading authentication/firestore
+                return;
+            }
+
             const jobDetailsStr = sessionStorage.getItem('jobDetails');
             const resumeSkillsStr = sessionStorage.getItem('resumeSkills');
             
@@ -258,8 +264,6 @@ export default function MockInterviewPage() {
             }
 
             setSessionState(prev => ({...prev, isReady: true }));
-
-            if (!user || !firestore) return;
 
             try {
                 const jobDescription = sessionStorage.getItem('jobDescription');
@@ -339,7 +343,7 @@ export default function MockInterviewPage() {
         };
 
         startSession();
-    }, [user, firestore]);
+    }, [user, firestore, toast]);
     
     const handleSubmitAnswer = async () => {
         const { questions, currentQuestionIndex, sessionId } = sessionState;

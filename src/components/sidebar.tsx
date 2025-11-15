@@ -63,35 +63,21 @@ export function Sidebar() {
       {navItems.map((item) => {
         const isActive = pathname.startsWith(item.href);
         const link = (
-          <Link href={item.href}>
+          <Link key={item.href} href={item.href}>
             <span
               className={cn(
-                'group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground',
+                'group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors',
                 isActive ? 'bg-accent text-accent-foreground' : 'transparent',
-                isMobile && 'text-lg'
+                isMobile && 'text-lg py-3'
               )}
             >
-              <item.icon className="mr-4 h-5 w-5" />
+              <item.icon className="mr-3 h-5 w-5" />
               <span>{item.label}</span>
             </span>
           </Link>
         );
 
-        if (isMobile) {
-            return link;
-        }
-
-        return (
-            <TooltipProvider key={item.href}>
-                <Tooltip>
-                    <TooltipTrigger asChild>{link}</TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={5}>
-                        {item.label}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-
+        return link;
       })}
     </nav>
   );
@@ -102,11 +88,11 @@ export function Sidebar() {
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <AppLogo className="h-6 w-6" />
-            <span>CareerSprint AI</span>
+            <span className="text-base">CareerSprint AI</span>
           </Link>
         </div>
-        <div className="flex-1 overflow-auto py-4">
-            <div className="flex-1 p-2">{navLinks()}</div>
+        <div className="flex-1 overflow-auto py-4 px-3">
+          {navLinks()}
         </div>
       </aside>
       <header className="flex h-16 items-center gap-4 border-b bg-card px-4 sm:hidden">
