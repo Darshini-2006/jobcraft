@@ -25,10 +25,16 @@ export default function DashboardPage() {
       collection(firestore, 'sessions'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
-      limit(5)
+      limit(10)
     );
   }, [firestore, user]);
   const { data: sessions, isLoading: sessionsLoading } = useCollection(sessionsQuery);
+
+  // Get the latest completed session
+  const latestCompletedSession = useMemoFirebase(() => {
+    if (!sessions) return null;
+    return sessions.find(s => s.completedAt != null) || null;
+  }, [sessions]);
 
   const skillGapsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -163,9 +169,15 @@ export default function DashboardPage() {
   type Session = {
     id: string;
     jobDescriptionId: string;
+    jobRole?: string;
+    jobCompany?: string;
     createdAt: { seconds: number };
+    completedAt?: { seconds: number } | null;
     overallScore: number;
+    skillScores?: { [key: string]: number };
     difficulty: string;
+    totalQuestions?: number;
+    questionsAnswered?: number;
   };
 
   const RecentSessionsCard = ({ sessions }: { sessions: Session[] }) => (
@@ -325,12 +337,66 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Track your progress and continue your interview preparation journey</p>
       </div>
 
+      {/* Latest Session Alert - Show if just completed */}
+      {latestCompletedSession && latestCompletedSession.completedAt && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                  Mock Interview Completed!
+                </CardTitle>
+                <CardDescription>
+                  {latestCompletedSession.jobRole || 'Recent Session'} • Score: {latestCompletedSession.overallScore}%
+                </CardDescription>
+              </div>
+              <Button asChild variant="default" size="sm">
+                <Link href="/learning-path">
+                  View Learning Path
+                  <ArrowUpRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Skills Tested</p>
+                <p className="font-semibold">{latestCompletedSession.skillScores ? Object.keys(latestCompletedSession.skillScores).length : 0}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Questions Answered</p>
+                <p className="font-semibold">{latestCompletedSession.questionsAnswered || latestCompletedSession.totalQuestions || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Overall Score</p>
+                <p className="font-semibold text-primary">{latestCompletedSession.overallScore}%</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Completed</p>
+                <p className="font-semibold">{latestCompletedSession.completedAt ? new Date(latestCompletedSession.completedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              🎯 Your personalized learning path is ready! Review your skill gaps and get curated resources to improve.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Actions */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Button asChild size="lg" className="h-auto py-4 justify-start">
           <Link href="/analysis/new">
             <BarChart className="mr-2 h-5 w-5 flex-shrink-0" />
             <span>Start New Analysis</span>
+          </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="h-auto py-4 justify-start">
+          <Link href="/learning-path">
+            <GraduationCap className="mr-2 h-5 w-5 flex-shrink-0" />
+            <span>View Learning Paths</span>
           </Link>
         </Button>
         <Button asChild size="lg" variant="outline" className="h-auto py-4 justify-start">
@@ -339,7 +405,7 @@ export default function DashboardPage() {
             <span>Edit Resume</span>
           </Link>
         </Button>
-        <Button asChild size="lg" variant="outline" className="h-auto py-4 justify-start sm:col-span-2 lg:col-span-1">
+        <Button asChild size="lg" variant="outline" className="h-auto py-4 justify-start">
           <Link href="/analysis/new">
             <Book className="mr-2 h-5 w-5 flex-shrink-0" />
             <span>Add Job Description</span>
@@ -495,16 +561,36 @@ export default function DashboardPage() {
             <CardContent>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Start a new analysis</span>
+                  <div className={`h-5 w-5 flex-shrink-0 mt-0.5 ${sessions && sessions.length > 0 ? 'text-green-500' : 'text-muted-foreground'}`}>
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm block">Start a new analysis</span>
+                    {sessions && sessions.length > 0 && <span className="text-xs text-muted-foreground">✓ Completed</span>}
+                  </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Complete a mock interview</span>
+                  <div className={`h-5 w-5 flex-shrink-0 mt-0.5 ${latestCompletedSession ? 'text-green-500' : 'text-muted-foreground'}`}>
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm block">Complete a mock interview</span>
+                    {latestCompletedSession && <span className="text-xs text-muted-foreground">✓ Completed</span>}
+                  </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">Review your learning path</span>
+                  <div className={`h-5 w-5 flex-shrink-0 mt-0.5 ${latestCompletedSession ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    {latestCompletedSession ? (
+                      <Link href="/learning-path" className="text-sm font-medium text-primary hover:underline">
+                        Review your learning path →
+                      </Link>
+                    ) : (
+                      <span className="text-sm">Review your learning path</span>
+                    )}
+                  </div>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
