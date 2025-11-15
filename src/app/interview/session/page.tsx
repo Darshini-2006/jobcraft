@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Lock, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
@@ -12,8 +12,11 @@ import { generateInterviewQuestions, GenerateInterviewQuestionsOutput } from '@/
 import { evaluateUserAnswer, EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { useUser } from '@/firebase/provider';
+import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase/provider';
+import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+
 
 type Question = GenerateInterviewQuestionsOutput['questions'][0] & {
     id?: string; // Firestore document ID
@@ -32,7 +35,70 @@ type SessionState = {
     isGenerating: boolean;
     error: string | null;
     sessionId: string | null;
+    isReady: boolean; // New state to check if ready for interview
 };
+
+const LockedState = ({ resumeUploaded, jdUploaded }: { resumeUploaded: boolean; jdUploaded: boolean }) => (
+    <div className="flex flex-col items-center justify-center h-full p-4 md:p-6 text-center">
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <div className="flex items-center justify-center gap-2 text-xl font-semibold text-destructive">
+            <Lock className="h-6 w-6" />
+            <span>Mock Interview Locked</span>
+          </div>
+          <CardDescription>
+            Upload your Resume and Job Description to unlock personalized AI interview modes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Progress Indicator */}
+          <div className="w-full max-w-md mx-auto space-y-4">
+            <h3 className="font-semibold">Setup Progress</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">Step 1: Upload Resume</span>
+                {resumeUploaded ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-muted-foreground" />}
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">Step 2: Paste Job Description</span>
+                {jdUploaded ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-muted-foreground" />}
+              </div>
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg text-muted-foreground">
+                <span className="font-medium">Step 3: Start Mock Interview</span>
+                <Lock className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+  
+          {/* Call to Action Cards */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="text-left">
+              <CardHeader>
+                <CardTitle>1. Upload Your Resume</CardTitle>
+                <CardDescription>Used to understand your existing skills and experience.</CardDescription>
+              </CardHeader>
+              <CardFooter>
+                <Button asChild className="w-full">
+                  <Link href="/resume/edit">Go to Resume Editor</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+            <Card className="text-left">
+              <CardHeader>
+                <CardTitle>2. Add Job Description</CardTitle>
+                <CardDescription>Used to identify required skills for your target role.</CardDescription>
+              </CardHeader>
+              <CardFooter>
+                <Button asChild className="w-full">
+                  <Link href="/analysis/new">Go to Job Analysis</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
 const QuestionCard = ({ question, answer, setAnswer, onSubmit, isEvaluating }: { question: Question; answer: string; setAnswer: (a: string) => void; onSubmit: () => void; isEvaluating: boolean }) => {
     return (
@@ -177,19 +243,28 @@ export default function MockInterviewPage() {
         isGenerating: true,
         error: null,
         sessionId: null,
+        isReady: false, // Default to not ready
     });
     const [currentAnswer, setCurrentAnswer] = useState('');
 
     useEffect(() => {
         const startSession = async () => {
+            const jobDetailsStr = sessionStorage.getItem('jobDetails');
+            const resumeSkillsStr = sessionStorage.getItem('resumeSkills');
+            
+            if (!jobDetailsStr || !resumeSkillsStr) {
+                setSessionState(prev => ({ ...prev, isGenerating: false, isReady: false }));
+                return; // Exit if data is not present
+            }
+
+            setSessionState(prev => ({...prev, isReady: true }));
+
             if (!user || !firestore) return;
 
             try {
-                const jobDetailsStr = sessionStorage.getItem('jobDetails');
-                const resumeSkillsStr = sessionStorage.getItem('resumeSkills');
                 const jobDescription = sessionStorage.getItem('jobDescription');
 
-                if (!jobDetailsStr || !resumeSkillsStr || !jobDescription) {
+                if (!jobDescription) {
                     throw new Error("Interview data not found. Please start a new analysis first.");
                 }
 
@@ -245,6 +320,7 @@ export default function MockInterviewPage() {
                     isGenerating: false,
                     error: null,
                     sessionId: sessionDoc.id,
+                    isReady: true,
                 });
             } catch (err: any) {
                 console.error(err);
@@ -258,7 +334,7 @@ export default function MockInterviewPage() {
                     title: "Failed to Start Session",
                     description: description,
                 });
-                setSessionState(prev => ({ ...prev, isGenerating: false, error: description }));
+                setSessionState(prev => ({ ...prev, isGenerating: false, error: description, isReady: true }));
             }
         };
 
@@ -380,6 +456,12 @@ export default function MockInterviewPage() {
         );
     }
     
+    if (!sessionState.isReady) {
+        const hasResume = !!sessionStorage.getItem('resumeSkills');
+        const hasJd = !!sessionStorage.getItem('jobDetails');
+        return <LockedState resumeUploaded={hasResume} jdUploaded={hasJd} />;
+    }
+
     if (sessionState.error) {
          return (
             <div className="flex flex-col items-center justify-center h-full p-4 text-center">
