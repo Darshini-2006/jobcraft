@@ -339,7 +339,7 @@ export default function MockInterviewPage() {
         };
 
         startSession();
-    }, [toast, user, firestore]);
+    }, [user, firestore]);
     
     const handleSubmitAnswer = async () => {
         const { questions, currentQuestionIndex, sessionId } = sessionState;
