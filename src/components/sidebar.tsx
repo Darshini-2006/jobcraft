@@ -50,11 +50,6 @@ const navItems = [
     icon: FilePenLine,
     label: 'Resume Editor',
   },
-  {
-    href: '/settings',
-    icon: Settings,
-    label: 'Settings',
-  },
 ];
 
 export function Sidebar() {
