@@ -27,6 +27,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AppLogo } from '@/lib/icons';
 import { motion } from 'framer-motion';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 const features = [
   {
@@ -119,6 +122,21 @@ const testimonials = [
 
 
 export default function LandingPage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  // Automatically redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+  // Show nothing while checking authentication or redirecting
+  if (isUserLoading || user) {
+    return null;
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF7F3]">
       {/* Navigation */}

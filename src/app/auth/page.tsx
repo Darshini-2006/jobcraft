@@ -195,6 +195,25 @@ export default function AuthPage() {
                   <CardDescription className="text-[#3E2F20]/60">
                     Enter your credentials to access your account
                   </CardDescription>
+                  {/* Test Credentials Info */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-3 p-3 rounded-lg bg-gradient-to-r from-[#E8A87C]/10 to-[#D4B68A]/10 border border-[#E8A87C]/20"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-[#E8A87C] mt-0.5 flex-shrink-0" />
+                      <div className="space-y-1 text-xs">
+                        <p className="font-semibold text-[#3E2F20]">Test the app instantly:</p>
+                        <div className="space-y-0.5 text-[#3E2F20]/70">
+                          <p><span className="font-medium">Email:</span> test@gmail.com</p>
+                          <p><span className="font-medium">Password:</span> nxtwave</p>
+                        </div>
+                        <p className="text-[#3E2F20]/60 italic pt-1">Or sign in with Google for a personalized experience</p>
+                      </div>
+                    </div>
+                  </motion.div>
                 </CardHeader>
                 <form onSubmit={handleEmailSignIn}>
                   <CardContent className="space-y-4">
@@ -205,7 +224,7 @@ export default function AuthPage() {
                         <Input
                           id="signin-email"
                           type="email"
-                          placeholder="a@gmail.com"
+                          placeholder="test@gmail.com"
                           className="pl-10 border-[#3E2F20]/20 focus:border-[#E8A87C] focus:ring-[#E8A87C] bg-white"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -221,7 +240,7 @@ export default function AuthPage() {
                         <Input
                           id="signin-password"
                           type="password"
-                          placeholder="••••••••"
+                          placeholder="nxtwave"
                           className="pl-10 border-[#3E2F20]/20 focus:border-[#E8A87C] focus:ring-[#E8A87C] bg-white"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -272,6 +291,21 @@ export default function AuthPage() {
                   <CardDescription className="text-[#3E2F20]/60">
                     Sign up to start your career preparation journey
                   </CardDescription>
+                  {/* Quick Access Info */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-3 p-3 rounded-lg bg-gradient-to-r from-[#E8A87C]/10 to-[#D4B68A]/10 border border-[#E8A87C]/20"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-[#E8A87C] mt-0.5 flex-shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-semibold text-[#3E2F20]">Want to try first?</p>
+                        <p className="text-[#3E2F20]/70 mt-1">Use test credentials on the Sign In tab or sign up with Google for instant access!</p>
+                      </div>
+                    </div>
+                  </motion.div>
                 </CardHeader>
                 <form onSubmit={handleEmailSignUp}>
                   <CardContent className="space-y-4">
@@ -297,7 +331,7 @@ export default function AuthPage() {
                         <Input
                           id="signup-email"
                           type="email"
-                          placeholder="a@gmail.com"
+                          placeholder="test@gmail.com"
                           className="pl-10 border-[#3E2F20]/20 focus:border-[#E8A87C] focus:ring-[#E8A87C] bg-white"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -313,7 +347,7 @@ export default function AuthPage() {
                         <Input
                           id="signup-password"
                           type="password"
-                          placeholder="••••••••"
+                          placeholder="nxtwave"
                           className="pl-10 border-[#3E2F20]/20 focus:border-[#E8A87C] focus:ring-[#E8A87C] bg-white"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
