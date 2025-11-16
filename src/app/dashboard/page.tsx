@@ -271,7 +271,9 @@ export default function DashboardPage() {
                       className="border-[#3E2F20]/10 hover:bg-[#FAF7F3]/50 transition-colors"
                     >
                       <TableCell>
-                        <div className="font-medium truncate max-w-[200px] text-[#3E2F20]">{session.jobDescriptionId}</div>
+                        <div className="font-medium truncate max-w-[200px] text-[#3E2F20]" title={session.jobRole || session.jobDescriptionId}>
+                          {session.jobRole || session.jobDescriptionId}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge 
@@ -368,7 +370,7 @@ export default function DashboardPage() {
             <Target className="h-5 w-5 text-[#E8A87C]" />
             Skill Gap Analysis
           </CardTitle>
-          <CardDescription className="text-[#3E2F20]/60">
+          <CardDescription className="text-[#3E2F20]/60 truncate" title={skillGap?.jobDescriptionId}>
             {skillGap?.jobDescriptionId ? `For "${skillGap.jobDescriptionId}"` : 'No analysis performed yet'}
           </CardDescription>
         </CardHeader>
@@ -391,7 +393,7 @@ export default function DashboardPage() {
                       transition={{ delay: idx * 0.05 }}
                       whileHover={{ scale: 1.05 }}
                     >
-                      <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors font-medium">
+                      <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors font-medium text-xs break-words max-w-full" title={skill}>
                         {skill}
                       </Badge>
                     </motion.div>
@@ -417,7 +419,7 @@ export default function DashboardPage() {
                       transition={{ delay: idx * 0.05 }}
                       whileHover={{ scale: 1.05 }}
                     >
-                      <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors font-medium">
+                      <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors font-medium text-xs break-words max-w-full" title={skill}>
                         {skill}
                       </Badge>
                     </motion.div>
@@ -592,57 +594,76 @@ export default function DashboardPage() {
         )}
 
         {/* Quick Actions */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          {[
-            { href: '/analysis/new', icon: BarChart, label: 'Start New Analysis', primary: true },
-            { href: '/learning-path', icon: GraduationCap, label: 'View Learning Paths', primary: false },
-            { href: '/resume/edit', icon: Target, label: 'Edit Resume', primary: false },
-            { href: '/analysis/new', icon: Book, label: 'Add Job Description', primary: false },
-          ].map((action, idx) => (
-            <motion.div
-              key={action.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + idx * 0.05 }}
-              whileHover={{ scale: 1.05, y: -4 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <Button 
-                asChild 
-                size="lg" 
-                variant={action.primary ? "default" : "outline"}
-                className={cn(
-                  "h-auto py-4 justify-start w-full rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group",
-                  action.primary 
-                    ? "bg-gradient-to-r from-[#3E2F20] to-[#5a4530] hover:from-[#E8A87C] hover:to-[#d4985f] text-white" 
-                    : "border-[#3E2F20]/20 hover:border-[#E8A87C] hover:bg-gradient-to-r hover:from-[#FAF7F3] hover:to-white text-[#3E2F20]"
-                )}
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="h-auto py-4 px-4 rounded-xl border border-[#3E2F20]/10 bg-gradient-to-br from-white to-[#FAF7F3] shadow-sm"
               >
-                <Link href={action.href} className="flex items-center w-full">
-                  <motion.div
-                    whileHover={{ rotate: 360, scale: 1.2 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <action.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  </motion.div>
-                  <span className="font-semibold">{action.label}</span>
-                  <motion.div
-                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowUpRight className="h-4 w-4" />
-                  </motion.div>
-                </Link>
-              </Button>
-            </motion.div>
-          ))}
-        </motion.div>
+                <div className="flex items-center w-full">
+                  <div className="h-5 w-5 bg-[#D4B68A]/20 rounded mr-3 animate-pulse flex-shrink-0" />
+                  <div className="h-5 bg-[#D4B68A]/20 rounded-full flex-1 animate-pulse" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {[
+              { href: '/analysis/new', icon: BarChart, label: 'Start New Analysis', primary: true },
+              { href: '/learning-path', icon: GraduationCap, label: 'View Learning Paths', primary: false },
+              { href: '/resume/edit', icon: Target, label: 'Edit Resume', primary: false },
+              { href: '/analysis/new', icon: Book, label: 'Add Job Description', primary: false },
+            ].map((action, idx) => (
+              <motion.div
+                key={action.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + idx * 0.05 }}
+                whileHover={{ scale: 1.05, y: -4 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Button 
+                  asChild 
+                  size="lg" 
+                  variant={action.primary ? "default" : "outline"}
+                  className={cn(
+                    "h-auto py-4 justify-start w-full rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group",
+                    action.primary 
+                      ? "bg-gradient-to-r from-[#3E2F20] to-[#5a4530] hover:from-[#E8A87C] hover:to-[#d4985f] text-white" 
+                      : "border-[#3E2F20]/20 hover:border-[#E8A87C] hover:bg-gradient-to-r hover:from-[#FAF7F3] hover:to-white text-[#3E2F20]"
+                  )}
+                >
+                  <Link href={action.href} className="flex items-center w-full">
+                    <motion.div
+                      whileHover={{ rotate: 360, scale: 1.2 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <action.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                    </motion.div>
+                    <span className="font-semibold text-sm md:text-base truncate">{action.label}</span>
+                    <motion.div
+                      className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <ArrowUpRight className="h-4 w-4" />
+                    </motion.div>
+                  </Link>
+                </Button>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
         {/* Main Grid Layout */}
         <div className="grid gap-6 lg:grid-cols-3">
@@ -736,10 +757,11 @@ export default function DashboardPage() {
                     ) : (
                       <>
                         <motion.div 
-                          className="text-4xl font-bold truncate text-[#3E2F20]"
+                          className="text-2xl font-bold text-[#3E2F20] line-clamp-2 break-words"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 200, delay: 0.25 }}
+                          title={weakestSkill.name}
                         >
                           {weakestSkill.name}
                         </motion.div>
@@ -852,8 +874,8 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                       >
-                        <p className="font-bold text-xl text-[#3E2F20]">{user?.displayName || 'Jane Doe'}</p>
-                        <p className="text-sm text-[#3E2F20]/60 mt-1">{user?.email || 'jane.doe@example.com'}</p>
+                        <p className="font-bold text-xl text-[#3E2F20] truncate" title={user?.displayName || 'Jane Doe'}>{user?.displayName || 'Jane Doe'}</p>
+                        <p className="text-sm text-[#3E2F20]/60 mt-1 truncate" title={user?.email || 'jane.doe@example.com'}>{user?.email || 'jane.doe@example.com'}</p>
                       </motion.div>
                       <Separator className="bg-[#3E2F20]/10" />
                       <div className="space-y-3 text-sm">

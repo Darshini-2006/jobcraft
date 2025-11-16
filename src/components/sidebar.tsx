@@ -139,7 +139,7 @@ export function Sidebar() {
               <AppLogo className="h-7 w-7 text-[#E8A87C]" />
             </motion.div>
             <span className="text-base bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
-              CareerSprint AI
+              JobCraft AI
             </span>
             <Sparkles className="h-4 w-4 text-[#E8A87C] opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
@@ -184,7 +184,7 @@ export function Sidebar() {
               >
                 <AppLogo className="h-7 w-7 text-[#E8A87C]" />
                 <span className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
-                  CareerSprint AI
+                  JobCraft AI
                 </span>
               </Link>
             </div>

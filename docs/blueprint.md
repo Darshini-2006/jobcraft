@@ -1,4 +1,4 @@
-# **App Name**: CareerSprint AI
+# **App Name**: JobCraft AI
 
 ## Core Features:
 

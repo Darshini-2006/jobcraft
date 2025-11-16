@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'CareerSprint AI',
+  title: 'JobCraft AI',
   description:
     'AI-powered career prep to analyze resumes, find skill gaps, and ace interviews.',
 };
@@ -28,8 +28,8 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <FirebaseClientProvider>

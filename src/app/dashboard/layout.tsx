@@ -16,12 +16,6 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex flex-1 flex-col">
           <Header title="Dashboard">
-            <Button asChild>
-              <Link href="/analysis/new">
-                <Sparkles className="mr-2 h-4 w-4" />
-                New Mock Interview
-              </Link>
-            </Button>
           </Header>
           <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
             {children}

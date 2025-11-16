@@ -1,8 +1,8 @@
-# CareerSprint AI - Complete Project Analysis
+# JobCraft AI - Complete Project Analysis
 
 ## 🎯 Application Overview
 
-**CareerSprint AI** is an intelligent career preparation platform that helps job seekers analyze their skills, identify gaps, and practice for interviews using AI-powered mock interviews.
+**JobCraft AI** is an intelligent career preparation platform that helps job seekers analyze their skills, identify gaps, and practice for interviews using AI-powered mock interviews.
 
 ---
 
@@ -408,7 +408,9 @@ src/
 
 ## 📝 Summary
 
-**CareerSprint AI** is a comprehensive, AI-powered career preparation platform that:
+## Summary
+
+**JobCraft AI** is a comprehensive, AI-powered career preparation platform that:
 - Analyzes resumes and job descriptions using Google Gemini
 - Identifies skill gaps between candidates and positions
 - Generates personalized mock interview questions

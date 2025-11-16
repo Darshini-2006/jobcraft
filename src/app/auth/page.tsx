@@ -60,7 +60,7 @@ export default function AuthPage() {
 
       toast({
         title: 'Account Created!',
-        description: 'Welcome to CareerSprint AI.',
+        description: 'Welcome to JobCraft AI.',
       });
       router.push('/dashboard');
     } catch (error: any) {
@@ -157,7 +157,7 @@ export default function AuthPage() {
         >
           <Link href="/" className="flex items-center gap-3">
             <AppLogo className="h-12 w-12 text-[#3E2F20]" />
-            <span className="text-3xl font-bold text-[#3E2F20]">CareerSprint</span>
+            <span className="text-3xl font-bold text-[#3E2F20]">JobCraft</span>
           </Link>
           <div className="flex items-center gap-2 rounded-full bg-[#E8A87C]/10 px-4 py-1.5 border border-[#E8A87C]/20">
             <Sparkles className="h-4 w-4 text-[#E8A87C]" />

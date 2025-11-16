@@ -92,7 +92,7 @@ const steps = [
 
 const testimonials = [
   {
-    quote: "CareerSprint helped me identify exactly what I needed to work on. Within three weeks, I landed my dream role at a top tech company.",
+    quote: "JobCraft helped me identify exactly what I needed to work on. Within three weeks, I landed my dream role at a top tech company.",
     author: "Sarah Chen",
     role: "Senior Product Manager",
     company: "Tech Startup",
@@ -132,7 +132,7 @@ export default function LandingPage() {
           <div className="flex h-20 items-center justify-between">
             <Link href="/" className="flex items-center space-x-3">
               <AppLogo className="h-8 w-8 text-[#3E2F20]" />
-              <span className="text-xl font-semibold text-[#3E2F20]">CareerSprint</span>
+              <span className="text-xl font-semibold text-[#3E2F20]">JobCraft</span>
             </Link>
 
             <div className="flex items-center gap-4">
@@ -433,7 +433,7 @@ export default function LandingPage() {
                 Loved by Professionals Worldwide
               </h2>
               <p className="text-lg text-[#3E2F20]/70">
-                Join thousands who've transformed their careers with CareerSprint.
+                Join thousands who've transformed their careers with JobCraft.
               </p>
             </motion.div>
 
@@ -526,7 +526,7 @@ export default function LandingPage() {
             <div className="lg:col-span-2">
               <Link href="/" className="mb-6 flex items-center space-x-3">
                 <AppLogo className="h-8 w-8 text-[#3E2F20]" />
-                <span className="text-xl font-semibold text-[#3E2F20]">CareerSprint</span>
+                <span className="text-xl font-semibold text-[#3E2F20]">JobCraft</span>
               </Link>
               <p className="mb-6 max-w-sm text-[#3E2F20]/70">
                 Empowering professionals to master interviews and accelerate their careers with AI-powered preparation.
@@ -643,7 +643,7 @@ export default function LandingPage() {
 
           <div className="mt-12 border-t border-[#3E2F20]/10 pt-8">
             <p className="text-center text-sm text-[#3E2F20]/60">
-              © {new Date().getFullYear()} CareerSprint AI. All rights reserved. Built with care for your career success.
+              © {new Date().getFullYear()} JobCraft AI. All rights reserved. Built with care for your career success.
             </p>
           </div>
         </div>
