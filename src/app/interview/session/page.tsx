@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Sparkles, Lock, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Lock, FileText, CheckCircle, XCircle, ArrowRight, Send } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import { useFirestore } from '@/firebase/provider';
 import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { generateQuestionsAction, evaluateAnswerAction, Question } from './actions';
 import type { EvaluateUserAnswerOutput } from '@/ai/flows/evaluate-user-answer';
+import { motion } from 'framer-motion';
 
 type SessionState = {
     jobDetails: any;
@@ -31,119 +32,290 @@ type SessionState = {
 };
 
 const LockedState = ({ resumeUploaded, jdUploaded }: { resumeUploaded: boolean; jdUploaded: boolean }) => (
-    <div className="flex flex-col items-center justify-center h-full p-4 md:p-6 text-center">
-      <Card className="w-full max-w-4xl">
-        <CardHeader>
-          <div className="flex items-center justify-center gap-2 text-xl font-semibold text-destructive">
-            <Lock className="h-6 w-6" />
-            <span>Mock Interview Locked</span>
-          </div>
-          <CardDescription>
-            Upload your Resume and Job Description to unlock personalized AI interview modes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {/* Progress Indicator */}
-          <div className="w-full max-w-md mx-auto space-y-4">
-            <h3 className="font-semibold">Setup Progress</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="font-medium">Step 1: Upload Resume</span>
-                {resumeUploaded ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-muted-foreground" />}
+    <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex items-center justify-center p-4 md:p-6 relative overflow-hidden">
+      {/* Floating Background Blobs */}
+      <motion.div
+        className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-[#E8A87C]/20 to-[#D4B68A]/20 rounded-full blur-3xl"
+        animate={{
+          scale: [1, 1.2, 1],
+          x: [0, 30, 0],
+          y: [0, -30, 0],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-[#3E2F20]/10 to-[#D4B68A]/10 rounded-full blur-3xl"
+        animate={{
+          scale: [1, 1.3, 1],
+          x: [0, -40, 0],
+          y: [0, 40, 0],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-5xl relative z-10"
+      >
+        <Card className="border-[#3E2F20]/10 shadow-2xl rounded-2xl bg-white/80 backdrop-blur-sm hover:shadow-3xl transition-all duration-300">
+          <CardHeader className="text-center space-y-4 pb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="flex items-center justify-center gap-3"
+            >
+              <Lock className="h-8 w-8 text-[#E8A87C]" />
+              <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
+                Mock Interview Locked
+              </h2>
+            </motion.div>
+            <CardDescription className="text-base text-[#3E2F20]/70">
+              Upload your Resume and Job Description to unlock personalized AI interview modes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-10 px-8 pb-8">
+            {/* Progress Indicator */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="w-full max-w-2xl mx-auto space-y-4"
+            >
+              <h3 className="font-semibold text-lg text-[#3E2F20]">Setup Progress</h3>
+              <div className="space-y-4">
+                {[
+                  { step: 1, text: 'Upload Resume', done: resumeUploaded },
+                  { step: 2, text: 'Paste Job Description', done: jdUploaded },
+                  { step: 3, text: 'Start Mock Interview', done: false, locked: true }
+                ].map((item, idx) => (
+                  <motion.div
+                    key={item.step}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + idx * 0.1 }}
+                    className={`flex items-center justify-between p-4 rounded-xl transition-all duration-300 ${
+                      item.done 
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' 
+                        : item.locked 
+                        ? 'bg-[#FAF7F3]/50 border border-[#3E2F20]/10' 
+                        : 'bg-amber-50 border border-amber-200'
+                    }`}
+                  >
+                    <span className="font-medium text-[#3E2F20]">Step {item.step}: {item.text}</span>
+                    {item.done ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 200 }}
+                      >
+                        <CheckCircle className="h-7 w-7 text-green-600" />
+                      </motion.div>
+                    ) : item.locked ? (
+                      <Lock className="h-7 w-7 text-[#3E2F20]/40" />
+                    ) : (
+                      <XCircle className="h-7 w-7 text-amber-500" />
+                    )}
+                  </motion.div>
+                ))}
               </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="font-medium">Step 2: Paste Job Description</span>
-                {jdUploaded ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-muted-foreground" />}
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg text-muted-foreground">
-                <span className="font-medium">Step 3: Start Mock Interview</span>
-                <Lock className="h-6 w-6" />
-              </div>
-            </div>
-          </div>
+            </motion.div>
   
-          {/* Call to Action Cards */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card className="text-left">
-              <CardHeader>
-                <CardTitle>1. Upload Your Resume</CardTitle>
-                <CardDescription>Used to understand your existing skills and experience.</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href="/resume/edit">Go to Resume Editor</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card className="text-left">
-              <CardHeader>
-                <CardTitle>2. Add Job Description</CardTitle>
-                <CardDescription>Used to identify required skills for your target role.</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild className="w-full">
-                  <Link href="/analysis/new">Go to Job Analysis</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
+            {/* Call to Action Cards */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+              >
+                <Card className="text-left h-full border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 hover:shadow-xl bg-gradient-to-br from-white to-[#FAF7F3]/30 rounded-xl">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-6 w-6 text-[#E8A87C]" />
+                      <CardTitle className="text-xl text-[#3E2F20]">1. Upload Your Resume</CardTitle>
+                    </div>
+                    <CardDescription className="text-[#3E2F20]/70">
+                      Used to understand your existing skills and experience.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button asChild className="w-full bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 group">
+                      <Link href="/resume/edit" className="flex items-center justify-center gap-2">
+                        Go to Resume Editor
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+              >
+                <Card className="text-left h-full border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 hover:shadow-xl bg-gradient-to-br from-white to-[#FAF7F3]/30 rounded-xl">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="h-6 w-6 text-[#E8A87C]" />
+                      <CardTitle className="text-xl text-[#3E2F20]">2. Add Job Description</CardTitle>
+                    </div>
+                    <CardDescription className="text-[#3E2F20]/70">
+                      Used to identify required skills for your target role.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button asChild className="w-full bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 group">
+                      <Link href="/analysis/new" className="flex items-center justify-center gap-2">
+                        Go to Job Analysis
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 
 const QuestionCard = ({ question, answer, setAnswer, onSubmit, isEvaluating }: { question: Question; answer: string; setAnswer: (a: string) => void; onSubmit: () => void; isEvaluating: boolean }) => {
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>Question</CardTitle>
-                        <CardDescription className="mt-1">
-                            Skill: {question.skill}
-                        </CardDescription>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <Card className="border-[#3E2F20]/10 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl bg-white/90 backdrop-blur-sm">
+                <CardHeader>
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-[#E8A87C]" />
+                                <CardTitle className="text-2xl text-[#3E2F20]">Question</CardTitle>
+                            </div>
+                            <CardDescription className="text-[#3E2F20]/70 flex items-center gap-2">
+                                <span className="font-semibold">Skill:</span> {question.skill}
+                            </CardDescription>
+                        </div>
+                        <Badge 
+                            variant="secondary" 
+                            className={`${
+                                question.difficulty === 'easy' 
+                                    ? 'bg-green-100 text-green-700 border-green-200' 
+                                    : question.difficulty === 'medium'
+                                    ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                    : 'bg-red-100 text-red-700 border-red-200'
+                            } px-4 py-1.5 text-sm font-semibold capitalize`}
+                        >
+                            {question.difficulty}
+                        </Badge>
                     </div>
-                    <Badge variant="secondary">{question.difficulty}</Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <p className="text-lg font-semibold">{question.questionText}</p>
-                <Textarea
-                    placeholder="Your answer..."
-                    rows={8}
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    disabled={isEvaluating || question.status === 'answered'}
-                />
-            </CardContent>
-            <CardFooter className="flex justify-end">
-                {question.status !== 'answered' && (
-                    <Button onClick={onSubmit} disabled={!answer || isEvaluating}>
-                        {isEvaluating && <Loader2 className="animate-spin" />}
-                        {isEvaluating ? 'Evaluating...' : 'Submit Answer'}
-                    </Button>
-                )}
-            </CardFooter>
-        </Card>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-lg font-medium text-[#3E2F20] leading-relaxed bg-gradient-to-r from-[#FAF7F3] to-white p-6 rounded-xl border border-[#3E2F20]/10"
+                    >
+                        {question.questionText}
+                    </motion.p>
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-[#3E2F20]">Your Answer:</label>
+                        <Textarea
+                            placeholder="Type your detailed answer here..."
+                            rows={10}
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            disabled={isEvaluating || question.status === 'answered'}
+                            className="rounded-xl border-[#3E2F20]/20 focus:border-[#E8A87C] focus:ring-[#E8A87C]/20 resize-none text-base"
+                        />
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end pt-6">
+                    {question.status !== 'answered' && (
+                        <Button 
+                            onClick={onSubmit} 
+                            disabled={!answer || isEvaluating}
+                            className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 px-8 py-6 text-base group"
+                        >
+                            {isEvaluating ? (
+                                <>
+                                    <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                                    Evaluating...
+                                </>
+                            ) : (
+                                <>
+                                    Submit Answer
+                                    <Send className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
+                        </Button>
+                    )}
+                </CardFooter>
+            </Card>
+        </motion.div>
     );
 };
 
 const EvaluationCard = ({ evaluation }: { evaluation: EvaluateUserAnswerOutput }) => (
-    <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Sparkles className="text-primary" /> AI Feedback</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="text-center">
-                <p className="text-sm text-muted-foreground">Your Score</p>
-                <p className="text-5xl font-bold">{evaluation.score}%</p>
-            </div>
-            <div>
-                <h4 className="font-semibold mb-2">Feedback:</h4>
-                <p className="text-sm text-muted-foreground italic">"{evaluation.feedback}"</p>
-            </div>
-        </CardContent>
-    </Card>
+    <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 200 }}
+    >
+        <Card className="border-[#3E2F20]/10 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl bg-gradient-to-br from-white to-[#FAF7F3]/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-[#3E2F20]">
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                        <Sparkles className="text-[#E8A87C] h-6 w-6" />
+                    </motion.div>
+                    AI Feedback
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <motion.div 
+                    className="text-center p-6 bg-gradient-to-br from-[#3E2F20]/5 to-[#E8A87C]/5 rounded-xl"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                >
+                    <p className="text-sm text-[#3E2F20]/70 mb-2 font-medium">Your Score</p>
+                    <motion.p 
+                        className="text-6xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                    >
+                        {evaluation.score}%
+                    </motion.p>
+                </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                >
+                    <h4 className="font-semibold mb-3 text-[#3E2F20] flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-[#E8A87C]" />
+                        Feedback:
+                    </h4>
+                    <p className="text-sm text-[#3E2F20]/80 leading-relaxed bg-white/80 p-4 rounded-xl border border-[#3E2F20]/10 italic">
+                        "{evaluation.feedback}"
+                    </p>
+                </motion.div>
+            </CardContent>
+        </Card>
+    </motion.div>
 );
 
 const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question[], jobDetails: any, onSave: () => Promise<void> }) => {
@@ -176,7 +348,6 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
         try {
             await onSave();
             toast({ title: "Session Saved!", description: "Your progress has been updated on the dashboard." });
-            // Redirect after a short delay
             setTimeout(() => window.location.href = '/dashboard', 1000);
         } catch (error) {
             console.error("Failed to save session:", error);
@@ -185,37 +356,143 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
         }
     };
 
-
     return (
-        <div className="flex-1 flex items-center justify-center p-4">
-            <Card className="w-full max-w-3xl">
-                <CardHeader className="text-center">
-                    <CardTitle>Session Complete!</CardTitle>
-                    <CardDescription>Here's a breakdown of your performance for the {jobDetails.role} role.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Overall Score</p>
-                        <p className="text-7xl font-bold text-primary">{averageScore}%</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="bg-secondary/50 p-3 rounded-lg text-center">
-                            <p className="font-semibold">Strongest Skill</p>
-                            <p className="text-green-500">{strongestSkill?.skill} ({strongestSkill?.average}%)</p>
+        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Floating Background Blobs */}
+            <motion.div
+                className="absolute top-10 right-20 w-80 h-80 bg-gradient-to-br from-[#E8A87C]/20 to-[#D4B68A]/20 rounded-full blur-3xl"
+                animate={{
+                    scale: [1, 1.3, 1],
+                    rotate: [0, 90, 0],
+                }}
+                transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+                className="absolute bottom-10 left-20 w-96 h-96 bg-gradient-to-br from-[#3E2F20]/10 to-[#E8A87C]/10 rounded-full blur-3xl"
+                animate={{
+                    scale: [1, 1.2, 1],
+                    rotate: [0, -90, 0],
+                }}
+                transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+            />
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="w-full max-w-4xl relative z-10"
+            >
+                <Card className="border-[#3E2F20]/10 shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader className="text-center space-y-4 pb-6">
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                        >
+                            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                        </motion.div>
+                        <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
+                            Session Complete! 🎉
+                        </CardTitle>
+                        <CardDescription className="text-base text-[#3E2F20]/70">
+                            Here's a breakdown of your performance for the <span className="font-semibold text-[#E8A87C]">{jobDetails.role}</span> role.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8 px-8 pb-8">
+                        <motion.div 
+                            className="text-center p-8 bg-gradient-to-br from-[#FAF7F3] to-white rounded-2xl border border-[#3E2F20]/10"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                        >
+                            <p className="text-sm text-[#3E2F20]/70 mb-2 font-medium">Overall Score</p>
+                            <motion.p 
+                                className="text-8xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                            >
+                                {averageScore}%
+                            </motion.p>
+                        </motion.div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5 }}
+                                whileHover={{ y: -4, scale: 1.02 }}
+                                className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl text-center border border-green-200 shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                                <Sparkles className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                                <p className="font-semibold text-[#3E2F20] mb-2">Strongest Skill</p>
+                                <p className="text-2xl font-bold text-green-600">{strongestSkill?.skill}</p>
+                                <p className="text-lg text-green-700 mt-1">{strongestSkill?.average}%</p>
+                            </motion.div>
+                            
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.6 }}
+                                whileHover={{ y: -4, scale: 1.02 }}
+                                className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl text-center border border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                                <ArrowRight className="h-8 w-8 text-amber-600 mx-auto mb-3" />
+                                <p className="font-semibold text-[#3E2F20] mb-2">Area to Improve</p>
+                                <p className="text-2xl font-bold text-amber-600">{weakestSkill?.skill}</p>
+                                <p className="text-lg text-amber-700 mt-1">{weakestSkill?.average}%</p>
+                            </motion.div>
                         </div>
-                        <div className="bg-secondary/50 p-3 rounded-lg text-center">
-                            <p className="font-semibold">Weakest Skill</p>
-                            <p className="text-red-500">{weakestSkill?.skill} ({weakestSkill?.average}%)</p>
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-center gap-4">
-                    <Button onClick={handleFinish} disabled={isSaving}>
-                        {isSaving && <Loader2 className="animate-spin mr-2" />}
-                        Finish & Go to Dashboard
-                    </Button>
-                </CardFooter>
-            </Card>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="bg-gradient-to-r from-[#FAF7F3] to-white p-6 rounded-2xl border border-[#3E2F20]/10"
+                        >
+                            <h4 className="font-semibold text-[#3E2F20] mb-4 flex items-center gap-2">
+                                <CheckCircle className="h-5 w-5 text-[#E8A87C]" />
+                                Session Statistics
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="text-center p-3 bg-white rounded-xl border border-[#3E2F20]/10">
+                                    <p className="text-[#3E2F20]/70">Questions Answered</p>
+                                    <p className="text-2xl font-bold text-[#3E2F20]">{questions.length}</p>
+                                </div>
+                                <div className="text-center p-3 bg-white rounded-xl border border-[#3E2F20]/10">
+                                    <p className="text-[#3E2F20]/70">Skills Tested</p>
+                                    <p className="text-2xl font-bold text-[#3E2F20]">{Object.keys(skillScores).length}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </CardContent>
+                    <CardFooter className="flex justify-center gap-4 pb-8">
+                        <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <Button 
+                                onClick={handleFinish} 
+                                disabled={isSaving}
+                                className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 px-8 py-6 text-base group"
+                                size="lg"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        Finish & Go to Dashboard
+                                        <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </Button>
+                        </motion.div>
+                    </CardFooter>
+                </Card>
+            </motion.div>
         </div>
     );
 };
@@ -301,7 +578,7 @@ export default function MockInterviewPage() {
                 });
                 
                 if (!result.success || !result.questions || result.questions.length === 0) {
-                     throw new Error(result.error || "Failed to generate interview questions.");
+                     throw new Error(!result.success ? result.error : "Failed to generate interview questions.");
                 }
 
                 const initialQuestions: Question[] = result.questions.map(q => ({ ...q, status: 'unanswered' }));
@@ -356,7 +633,7 @@ export default function MockInterviewPage() {
             });
 
             if (!result.success || !result.evaluation) {
-                throw new Error(result.error || 'Evaluation failed');
+                throw new Error(!result.success ? result.error : 'Evaluation failed');
             }
 
             setSessionState(prev => ({
@@ -533,14 +810,65 @@ export default function MockInterviewPage() {
 
     if (sessionState.isGenerating) {
         return (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                 <h2 className="text-2xl font-semibold mb-2">Generating Your Interview...</h2>
-                 <p className="text-muted-foreground">Our AI is crafting personalized questions based on your resume and the job description.</p>
-                 <div className="w-full max-w-md mt-8 space-y-6">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-40 w-full" />
-                 </div>
+            <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+                {/* Floating Background Blobs */}
+                <motion.div
+                    className="absolute top-20 left-20 w-80 h-80 bg-gradient-to-br from-[#E8A87C]/20 to-[#D4B68A]/20 rounded-full blur-3xl"
+                    animate={{
+                        scale: [1, 1.2, 1],
+                        x: [0, 50, 0],
+                        y: [0, -50, 0],
+                    }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                    className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-[#3E2F20]/10 to-[#D4B68A]/10 rounded-full blur-3xl"
+                    animate={{
+                        scale: [1, 1.3, 1],
+                        rotate: [0, 180, 0],
+                    }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    className="relative z-10"
+                >
+                    <Loader2 className="h-16 w-16 animate-spin text-[#E8A87C] mb-6" />
+                </motion.div>
+                
+                <motion.h2
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent relative z-10"
+                >
+                    Generating Your Interview...
+                </motion.h2>
+                
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-[#3E2F20]/70 text-lg max-w-xl mb-12 relative z-10"
+                >
+                    Our AI is crafting personalized questions based on your resume and the job description.
+                </motion.p>
+                
+                <div className="w-full max-w-2xl space-y-6 relative z-10">
+                    {[0, 1, 2].map((i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 + i * 0.1 }}
+                        >
+                            <Skeleton className="h-32 w-full rounded-2xl bg-white/50 border border-[#3E2F20]/10" />
+                        </motion.div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -553,12 +881,54 @@ export default function MockInterviewPage() {
 
     if (sessionState.error) {
          return (
-            <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                 <h2 className="text-2xl font-semibold mb-2 text-destructive">Error</h2>
-                 <p className="text-muted-foreground mb-4">{sessionState.error}</p>
-                 <Button asChild>
-                    <Link href="/analysis/new">Start a New Analysis</Link>
-                 </Button>
+            <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+                <motion.div
+                    className="absolute top-10 right-10 w-80 h-80 bg-gradient-to-br from-red-100/30 to-amber-100/30 rounded-full blur-3xl"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 8, repeat: Infinity }}
+                />
+                
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                    className="relative z-10"
+                >
+                    <XCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
+                </motion.div>
+                
+                <motion.h2
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-3xl font-semibold mb-4 text-red-600 relative z-10"
+                >
+                    Error
+                </motion.h2>
+                
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-[#3E2F20]/70 mb-8 max-w-md relative z-10"
+                >
+                    {sessionState.error}
+                </motion.p>
+                
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="relative z-10"
+                >
+                    <Button asChild className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 px-8 py-6 text-base group">
+                        <Link href="/analysis/new" className="flex items-center gap-2">
+                            Start a New Analysis
+                            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                    </Button>
+                </motion.div>
             </div>
          )
     }
@@ -571,22 +941,79 @@ export default function MockInterviewPage() {
     const currentQuestion = questions[currentQuestionIndex];
 
     return (
-        <div className="p-4 md:p-6 space-y-6">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>{jobDetails?.role || 'Mock Interview'}</CardTitle>
-                            <CardDescription>Question {currentQuestionIndex + 1} of {questions.length}</CardDescription>
-                        </div>
-                        <Button variant="outline" size="sm" asChild><Link href="/dashboard"><ArrowLeft /> End Session</Link></Button>
-                    </div>
-                    <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="mt-4" />
-                </CardHeader>
-            </Card>
+        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] p-4 md:p-6 space-y-6 relative overflow-hidden">
+            {/* Floating Background Blobs */}
+            <motion.div
+                className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#E8A87C]/10 to-[#D4B68A]/10 rounded-full blur-3xl -z-0"
+                animate={{
+                    x: [0, 100, 0],
+                    y: [0, -100, 0],
+                    scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+                className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-br from-[#3E2F20]/10 to-[#E8A87C]/10 rounded-full blur-3xl -z-0"
+                animate={{
+                    x: [0, -80, 0],
+                    y: [0, 80, 0],
+                    scale: [1, 1.3, 1],
+                }}
+                transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            />
 
-            <div className="grid lg:grid-cols-3 gap-6 items-start">
-                <div className="lg:col-span-2 space-y-6">
+            {/* Progress Header */}
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="relative z-10"
+            >
+                <Card className="border-[#3E2F20]/10 shadow-lg rounded-2xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader>
+                        <div className="flex justify-between items-center flex-wrap gap-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-6 w-6 text-[#E8A87C]" />
+                                    <CardTitle className="text-2xl md:text-3xl text-[#3E2F20]">
+                                        {jobDetails?.role || 'Mock Interview'}
+                                    </CardTitle>
+                                </div>
+                                <CardDescription className="text-base text-[#3E2F20]/70">
+                                    Question <span className="font-bold text-[#E8A87C]">{currentQuestionIndex + 1}</span> of <span className="font-bold">{questions.length}</span>
+                                </CardDescription>
+                            </div>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                asChild 
+                                className="border-[#3E2F20]/20 hover:border-[#E8A87C] hover:bg-[#FAF7F3] transition-all duration-300"
+                            >
+                                <Link href="/dashboard" className="flex items-center gap-2">
+                                    <ArrowLeft className="h-4 w-4" />
+                                    End Session
+                                </Link>
+                            </Button>
+                        </div>
+                        <motion.div
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="mt-6"
+                        >
+                            <Progress 
+                                value={((currentQuestionIndex + 1) / questions.length) * 100} 
+                                className="h-3 bg-[#FAF7F3]"
+                            />
+                        </motion.div>
+                    </CardHeader>
+                </Card>
+            </motion.div>
+
+            {/* Main Content Grid */}
+            <div className="grid lg:grid-cols-3 gap-6 items-start relative z-10">
+                {/* Question Card */}
+                <div className="lg:col-span-2">
                     {currentQuestion && (
                         <QuestionCard
                             question={currentQuestion}
@@ -597,20 +1024,51 @@ export default function MockInterviewPage() {
                         />
                     )}
                 </div>
-                <div className="space-y-6 sticky top-20">
+                
+                {/* Evaluation Sidebar */}
+                <div className="space-y-6 lg:sticky lg:top-24">
                     {currentQuestion?.status === 'answered' && currentQuestion.evaluation ? (
-                        <EvaluationCard evaluation={currentQuestion.evaluation} />
+                        <>
+                            <EvaluationCard evaluation={currentQuestion.evaluation} />
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                whileHover={{ scale: 1.02 }}
+                            >
+                                <Button 
+                                    onClick={handleNextQuestion} 
+                                    className="w-full bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 py-6 text-base group"
+                                >
+                                    {currentQuestionIndex === questions.length - 1 ? (
+                                        <>
+                                            Finish & View Summary
+                                            <CheckCircle className="ml-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            Next Question
+                                            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                        </>
+                                    )}
+                                </Button>
+                            </motion.div>
+                        </>
                     ) : (
-                        <Card className="flex items-center justify-center min-h-[200px]">
-                            <CardContent className="text-center text-muted-foreground p-6">
-                                <p>Your feedback will appear here once you submit an answer.</p>
-                            </CardContent>
-                        </Card>
-                    )}
-                    {currentQuestion?.status === 'answered' && (
-                        <Button onClick={handleNextQuestion} className="w-full">
-                            {currentQuestionIndex === questions.length - 1 ? "Finish & View Summary" : "Next Question"}
-                        </Button>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Card className="flex items-center justify-center min-h-[280px] border-[#3E2F20]/10 rounded-2xl bg-gradient-to-br from-white to-[#FAF7F3]/50">
+                                <CardContent className="text-center p-8">
+                                    <Sparkles className="h-12 w-12 text-[#E8A87C]/40 mx-auto mb-4" />
+                                    <p className="text-[#3E2F20]/60 leading-relaxed">
+                                        Your feedback will appear here once you submit an answer.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     )}
                 </div>
             </div>

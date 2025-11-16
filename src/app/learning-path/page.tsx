@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Zap, BookOpen, Video, Code, FileText, Target, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, Zap, BookOpen, Video, Code, FileText, Target, Clock, AlertCircle, Sparkles, ArrowRight, TrendingUp, Award } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useUser, useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 type ViewMode = 'full' | 'sprint';
 

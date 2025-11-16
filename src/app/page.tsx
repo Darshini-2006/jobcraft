@@ -98,7 +98,7 @@ const testimonials = [
     company: "Tech Startup",
   },
   {
-    quote: "The mock interview feature is incredibly realistic. It's like having a personal career coach available 24/7.",
+    quote: "The mock interview feature is incredibly realistic. It is like having a personal career coach available 24/7.",
     author: "Michael Rodriguez",
     role: "Software Engineer",
     company: "Fortune 500",
