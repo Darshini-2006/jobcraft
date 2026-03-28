@@ -357,7 +357,7 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] flex items-center justify-center p-2 md:p-4 relative overflow-hidden">
             {/* Floating Background Blobs */}
             <motion.div
                 className="absolute top-10 right-20 w-80 h-80 bg-gradient-to-br from-[#E8A87C]/20 to-[#D4B68A]/20 rounded-full blur-3xl"
@@ -380,34 +380,34 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6 }}
-                className="w-full max-w-4xl relative z-10"
+                className="w-full max-w-3xl relative z-10"
             >
                 <Card className="border-[#3E2F20]/10 shadow-2xl rounded-2xl bg-white/90 backdrop-blur-sm">
-                    <CardHeader className="text-center space-y-4 pb-6">
+                    <CardHeader className="text-center space-y-2 pb-3">
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                         >
-                            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                            <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-2" />
                         </motion.div>
-                        <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
+                        <CardTitle className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
                             Session Complete! 🎉
                         </CardTitle>
-                        <CardDescription className="text-base text-[#3E2F20]/70">
+                        <CardDescription className="text-sm text-[#3E2F20]/70">
                             Here's a breakdown of your performance for the <span className="font-semibold text-[#E8A87C]">{jobDetails.role}</span> role.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-8 px-8 pb-8">
+                    <CardContent className="space-y-4 px-6 pb-4">
                         <motion.div 
-                            className="text-center p-8 bg-gradient-to-br from-[#FAF7F3] to-white rounded-2xl border border-[#3E2F20]/10"
+                            className="text-center p-4 bg-gradient-to-br from-[#FAF7F3] to-white rounded-xl border border-[#3E2F20]/10"
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
                         >
-                            <p className="text-sm text-[#3E2F20]/70 mb-2 font-medium">Overall Score</p>
+                            <p className="text-sm text-[#3E2F20]/70 mb-1 font-medium">Overall Score</p>
                             <motion.p 
-                                className="text-8xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent"
+                                className="text-5xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent"
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.4 }}
@@ -416,18 +416,18 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
                             </motion.p>
                         </motion.div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-4">
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.5 }}
                                 whileHover={{ y: -4, scale: 1.02 }}
-                                className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl text-center border border-green-200 shadow-lg hover:shadow-xl transition-all duration-300"
+                                className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl text-center border border-green-200 shadow-md hover:shadow-lg transition-all duration-300"
                             >
-                                <Sparkles className="h-8 w-8 text-green-600 mx-auto mb-3" />
-                                <p className="font-semibold text-[#3E2F20] mb-2">Strongest Skill</p>
-                                <p className="text-2xl font-bold text-green-600">{strongestSkill?.skill}</p>
-                                <p className="text-lg text-green-700 mt-1">{strongestSkill?.average}%</p>
+                                <Sparkles className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                                <p className="font-semibold text-sm text-[#3E2F20] mb-1">Strongest Skill</p>
+                                <p className="text-lg font-bold text-green-600">{strongestSkill?.skill}</p>
+                                <p className="text-base text-green-700">{strongestSkill?.average}%</p>
                             </motion.div>
                             
                             <motion.div
@@ -435,12 +435,12 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.6 }}
                                 whileHover={{ y: -4, scale: 1.02 }}
-                                className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl text-center border border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300"
+                                className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-xl text-center border border-amber-200 shadow-md hover:shadow-lg transition-all duration-300"
                             >
-                                <ArrowRight className="h-8 w-8 text-amber-600 mx-auto mb-3" />
-                                <p className="font-semibold text-[#3E2F20] mb-2">Area to Improve</p>
-                                <p className="text-2xl font-bold text-amber-600">{weakestSkill?.skill}</p>
-                                <p className="text-lg text-amber-700 mt-1">{weakestSkill?.average}%</p>
+                                <ArrowRight className="h-5 w-5 text-amber-600 mx-auto mb-1" />
+                                <p className="font-semibold text-sm text-[#3E2F20] mb-1">Area to Improve</p>
+                                <p className="text-lg font-bold text-amber-600">{weakestSkill?.skill}</p>
+                                <p className="text-base text-amber-700">{weakestSkill?.average}%</p>
                             </motion.div>
                         </div>
 
@@ -448,25 +448,27 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.7 }}
-                            className="bg-gradient-to-r from-[#FAF7F3] to-white p-6 rounded-2xl border border-[#3E2F20]/10"
+                            className="bg-gradient-to-r from-[#FAF7F3] to-white p-4 rounded-xl border border-[#3E2F20]/10"
                         >
-                            <h4 className="font-semibold text-[#3E2F20] mb-4 flex items-center gap-2">
-                                <CheckCircle className="h-5 w-5 text-[#E8A87C]" />
-                                Session Statistics
-                            </h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="text-center p-3 bg-white rounded-xl border border-[#3E2F20]/10">
-                                    <p className="text-[#3E2F20]/70">Questions Answered</p>
-                                    <p className="text-2xl font-bold text-[#3E2F20]">{questions.length}</p>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-[#E8A87C]" />
+                                    <span className="font-semibold text-sm text-[#3E2F20]">Session Statistics</span>
                                 </div>
-                                <div className="text-center p-3 bg-white rounded-xl border border-[#3E2F20]/10">
-                                    <p className="text-[#3E2F20]/70">Skills Tested</p>
-                                    <p className="text-2xl font-bold text-[#3E2F20]">{Object.keys(skillScores).length}</p>
+                                <div className="flex items-center gap-6 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[#3E2F20]/70">Questions:</span>
+                                        <span className="text-lg font-bold text-[#3E2F20]">{questions.length}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[#3E2F20]/70">Skills:</span>
+                                        <span className="text-lg font-bold text-[#3E2F20]">{Object.keys(skillScores).length}</span>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
                     </CardContent>
-                    <CardFooter className="flex justify-center gap-4 pb-8">
+                    <CardFooter className="flex justify-center gap-4 pb-4">
                         <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -474,7 +476,7 @@ const SessionSummary = ({ questions, jobDetails, onSave }: { questions: Question
                             <Button 
                                 onClick={handleFinish} 
                                 disabled={isSaving}
-                                className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 px-8 py-6 text-base group"
+                                className="bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] hover:opacity-90 transition-all duration-300 px-6 py-4 text-sm group"
                                 size="lg"
                             >
                                 {isSaving ? (

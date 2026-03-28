@@ -117,7 +117,7 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="hidden h-full w-64 flex-col border-r border-[#3E2F20]/10 bg-gradient-to-b from-white to-[#FAF7F3] sm:flex relative overflow-hidden">
+      <aside className="hidden min-h-screen h-screen sticky top-0 w-64 flex-col border-r border-[#3E2F20]/10 bg-gradient-to-b from-white to-[#FAF7F3] sm:flex relative overflow-hidden">
         {/* Decorative background elements */}
         <motion.div
           className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#E8A87C]/10 to-transparent rounded-bl-full"

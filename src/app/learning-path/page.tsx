@@ -402,52 +402,52 @@ export default function LearningPathPage() {
     );
 
     const FullPrepMode = () => (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {/* Learning Path Header */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-4"
+                className="text-center mb-2"
             >
-                <h2 className="text-xl font-bold text-[#3E2F20] mb-1">Your Learning Journey</h2>
-                <p className="text-sm text-[#3E2F20]/70">Follow this path to master each skill step by step</p>
+                <h2 className="text-base font-bold text-[#3E2F20] mb-0.5">Your Learning Journey</h2>
+                <p className="text-xs text-[#3E2F20]/70">Follow this path to master each skill step by step</p>
             </motion.div>
 
             {/* Skills as a vertical learning path */}
             <div className="relative">
                 {/* Vertical connecting line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#E8A87C] via-[#D4B68A] to-[#3E2F20]/20" />
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#E8A87C] via-[#D4B68A] to-[#3E2F20]/20" />
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {skills.map((skill, index) => (
                         <motion.div
                             key={skill.name}
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="relative pl-16"
+                            className="relative pl-12"
                         >
                             {/* Step number indicator */}
                             <motion.div 
-                                className="absolute left-0 top-4 w-12 h-12 rounded-full bg-gradient-to-br from-[#3E2F20] to-[#E8A87C] flex items-center justify-center shadow-lg z-10"
-                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                className="absolute left-0 top-3 w-8 h-8 rounded-full bg-gradient-to-br from-[#3E2F20] to-[#E8A87C] flex items-center justify-center shadow-md z-10"
+                                whileHover={{ scale: 1.1 }}
                                 transition={{ type: "spring", stiffness: 300 }}
                             >
-                                <span className="text-white font-bold text-base">#{index + 1}</span>
+                                <span className="text-white font-bold text-xs">#{index + 1}</span>
                             </motion.div>
 
                             {/* Skill Card */}
-                            <Card className="border-[#3E2F20]/10 bg-white/95 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
-                                <CardHeader className="bg-gradient-to-r from-[#FAF7F3] to-white border-b border-[#3E2F20]/10 pb-3 pt-4">
+                            <Card className="border-[#3E2F20]/10 bg-white/95 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300 rounded-lg overflow-hidden">
+                                <CardHeader className="bg-gradient-to-r from-[#FAF7F3] to-white border-b border-[#3E2F20]/10 pb-2 pt-3 px-4">
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                         <div className="flex items-center gap-2">
                                             <motion.div 
-                                                className={`w-5 h-5 rounded-full ${getRatingColor(skill.rating)}`}
+                                                className={`w-3 h-3 rounded-full ${getRatingColor(skill.rating)}`}
                                                 animate={{ scale: [1, 1.2, 1] }}
                                                 transition={{ duration: 2, repeat: Infinity }}
                                             />
                                             <div>
-                                                <CardTitle className="text-lg text-[#3E2F20]">{skill.name}</CardTitle>
+                                                <CardTitle className="text-sm text-[#3E2F20]">{skill.name}</CardTitle>
                                                 <CardDescription className="text-xs mt-0.5 text-[#3E2F20]/70">
                                                     Current: <span className="font-bold text-[#3E2F20]">{skill.rating}%</span> • 
                                                     Gap: <span className="font-bold text-[#E8A87C]">{skill.gapScore}%</span>
@@ -476,98 +476,80 @@ export default function LearningPathPage() {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="p-4">
+                                <CardContent className="p-3">
                                     {/* Explanation */}
                                     <motion.div
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: 0.2 }}
-                                        className="mb-4"
+                                        className="mb-3"
                                     >
-                                        <p className="text-sm text-[#3E2F20]/80 italic bg-gradient-to-r from-[#FAF7F3] to-white p-3 rounded-lg border border-[#3E2F20]/10 leading-relaxed">
+                                        <p className="text-xs text-[#3E2F20]/80 italic bg-gradient-to-r from-[#FAF7F3] to-white p-2 rounded-lg border border-[#3E2F20]/10 leading-relaxed">
                                             "{skill.explanation}"
                                         </p>
                                     </motion.div>
 
                                     {/* Two-column layout for resources and performance */}
-                                    <div className="grid md:grid-cols-5 gap-4">
-                                        {/* Learning Resources - Takes 3 columns */}
-                                        <div className="md:col-span-3 space-y-3">
-                                            <h4 className="font-semibold text-[#3E2F20] flex items-center gap-2 text-sm">
-                                                <BookOpen className="h-4 w-4 text-[#E8A87C]"/>
+                                    <div className="grid md:grid-cols-2 gap-3">
+                                        {/* Learning Resources */}
+                                        <div className="space-y-2">
+                                            <h4 className="font-semibold text-[#3E2F20] flex items-center gap-1.5 text-xs">
+                                                <BookOpen className="h-3.5 w-3.5 text-[#E8A87C]"/>
                                                 Learning Resources
                                             </h4>
-                                            <div className="grid gap-2">
+                                            <div className="grid gap-1.5">
                                                 {getResourcesForSkill(skill.name).map((res: any, idx: number) => (
                                                     <motion.a 
                                                         href={res.url} 
                                                         key={res.title} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer" 
-                                                        className="flex items-center gap-2 p-2.5 rounded-lg bg-gradient-to-br from-white to-[#FAF7F3] hover:from-[#FAF7F3] hover:to-white border border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 group"
+                                                        className="flex items-center gap-2 p-2 rounded-md bg-gradient-to-br from-white to-[#FAF7F3] hover:from-[#FAF7F3] hover:to-white border border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 group"
                                                         initial={{ opacity: 0, y: 10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: 0.3 + idx * 0.05 }}
-                                                        whileHover={{ y: -2 }}
+                                                        whileHover={{ y: -1 }}
                                                     >
-                                                        <div className="p-1.5 rounded bg-white group-hover:bg-[#E8A87C]/10 transition-colors">
-                                                            <res.icon className="h-4 w-4 text-[#E8A87C] group-hover:scale-110 transition-transform" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <span className="text-xs font-medium text-[#3E2F20] group-hover:text-[#E8A87C] transition-colors block truncate">
-                                                                {res.title}
-                                                            </span>
-                                                        </div>
-                                                        <ArrowRight className="h-3 w-3 text-[#3E2F20]/40 group-hover:text-[#E8A87C] group-hover:translate-x-1 transition-all flex-shrink-0" />
+                                                        <res.icon className="h-3.5 w-3.5 text-[#E8A87C] flex-shrink-0" />
+                                                        <span className="text-xs font-medium text-[#3E2F20] group-hover:text-[#E8A87C] transition-colors truncate">
+                                                            {res.title}
+                                                        </span>
+                                                        <ArrowRight className="h-3 w-3 text-[#3E2F20]/40 group-hover:text-[#E8A87C] ml-auto flex-shrink-0" />
                                                     </motion.a>
                                                 ))}
                                             </div>
                                         </div>
 
-                                        {/* Current Performance - Takes 2 columns */}
-                                        <div className="md:col-span-2 space-y-3">
-                                            <h4 className="font-semibold text-[#3E2F20] flex items-center gap-2 text-sm">
-                                                <Target className="h-4 w-4 text-[#E8A87C]"/>
+                                        {/* Performance - Compact */}
+                                        <div className="space-y-2">
+                                            <h4 className="font-semibold text-[#3E2F20] flex items-center gap-1.5 text-xs">
+                                                <Target className="h-3.5 w-3.5 text-[#E8A87C]"/>
                                                 Performance
                                             </h4>
-                                            <motion.div 
-                                                className="p-3 rounded-lg bg-gradient-to-br from-[#3E2F20]/5 to-[#E8A87C]/5 border border-[#3E2F20]/10 h-full"
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ delay: 0.4 }}
-                                            >
-                                                <div className="space-y-2">
-                                                    <div className="text-center p-3 rounded-lg bg-white/80">
-                                                        <div className="text-xs text-[#3E2F20]/60 mb-1">Score</div>
-                                                        <motion.div 
-                                                            className="text-2xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent"
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                                                        >
-                                                            {skill.rating}%
-                                                        </motion.div>
-                                                    </div>
-                                                    <div className="flex justify-between items-center p-2 rounded-lg bg-white/60">
-                                                        <span className="text-sm text-[#3E2F20]/70">Skill Gap:</span>
-                                                        <span className="font-bold text-[#E8A87C]">{skill.gapScore}%</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/60">
-                                                        <span className="text-sm text-[#3E2F20]/70">Priority:</span>
-                                                        <Badge 
-                                                            className={`${
-                                                                skill.priority === 'High' 
-                                                                    ? 'bg-red-100 text-red-700 border-red-200' 
-                                                                    : skill.priority === 'Medium'
-                                                                    ? 'bg-amber-100 text-amber-700 border-amber-200'
-                                                                    : 'bg-green-100 text-green-700 border-green-200'
-                                                            }`}
-                                                        >
-                                                            {skill.priority}
-                                                        </Badge>
-                                                    </div>
+                                            <div className="p-2.5 rounded-md bg-gradient-to-br from-[#3E2F20]/5 to-[#E8A87C]/5 border border-[#3E2F20]/10 space-y-1.5">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-[#3E2F20]/70">Score:</span>
+                                                    <span className="text-lg font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">{skill.rating}%</span>
                                                 </div>
-                                            </motion.div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-[#3E2F20]/70">Skill Gap:</span>
+                                                    <span className="font-bold text-[#E8A87C]">{skill.gapScore}%</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-[#3E2F20]/70">Priority:</span>
+                                                    <Badge 
+                                                        className={`text-[10px] px-1.5 py-0 ${
+                                                            skill.priority === 'High' 
+                                                                ? 'bg-red-100 text-red-700 border-red-200' 
+                                                                : skill.priority === 'Medium'
+                                                                ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                                                : 'bg-green-100 text-green-700 border-green-200'
+                                                        }`}
+                                                    >
+                                                        {skill.priority}
+                                                    </Badge>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -581,15 +563,15 @@ export default function LearningPathPage() {
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: skills.length * 0.1 + 0.3 }}
-                    className="relative pl-16 mt-4"
+                    className="relative pl-12 mt-3"
                 >
-                    <div className="absolute left-0 top-0 w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg z-10">
-                        <CheckCircle className="h-6 w-6 text-white" />
+                    <div className="absolute left-0 top-0 w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md z-10">
+                        <CheckCircle className="h-4 w-4 text-white" />
                     </div>
-                    <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg rounded-xl">
-                        <CardContent className="p-4">
-                            <h3 className="text-base font-bold text-green-800 mb-1">Journey Complete!</h3>
-                            <p className="text-sm text-green-700">Master all these skills to become job-ready for {selectedSession?.jobRole}</p>
+                    <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-md rounded-lg">
+                        <CardContent className="p-3">
+                            <h3 className="text-sm font-bold text-green-800 mb-0.5">Journey Complete!</h3>
+                            <p className="text-xs text-green-700">Master all skills to become job-ready for {selectedSession?.jobRole}</p>
                         </CardContent>
                     </Card>
                 </motion.div>
@@ -783,7 +765,7 @@ export default function LearningPathPage() {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] p-4 md:p-6 space-y-6 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-b from-white to-[#FAF7F3] p-3 md:p-4 space-y-3 relative overflow-hidden">
             {/* Floating Background Blobs */}
             <motion.div
                 className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#E8A87C]/10 to-[#D4B68A]/10 rounded-full blur-3xl -z-0"
@@ -812,33 +794,28 @@ export default function LearningPathPage() {
                 transition={{ duration: 0.5 }}
             >
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                        >
-                            <Sparkles className="h-8 w-8 text-[#E8A87C]" />
-                        </motion.div>
-                        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-5 w-5 text-[#E8A87C]" />
+                        <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#3E2F20] to-[#E8A87C] bg-clip-text text-transparent">
                             Learning Paths
                         </h1>
                     </div>
-                    <p className="text-[#3E2F20]/70 text-base">Prepare for multiple job roles simultaneously</p>
+                    <p className="text-[#3E2F20]/70 text-xs">Prepare for multiple job roles simultaneously</p>
                 </div>
                 <Tabs value={mode} onValueChange={(value) => setMode(value as ViewMode)} className="w-auto">
                     <TabsList className="grid w-full grid-cols-2 bg-white border border-[#3E2F20]/10 p-1">
                         <TabsTrigger 
                             value="full" 
-                            className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3E2F20] data-[state=active]:to-[#E8A87C] data-[state=active]:text-white transition-all duration-300"
+                            className="gap-1.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3E2F20] data-[state=active]:to-[#E8A87C] data-[state=active]:text-white transition-all duration-300"
                         >
-                            <BookOpen className="h-5 w-5"/>
+                            <BookOpen className="h-4 w-4"/>
                             Full Prep
                         </TabsTrigger>
                         <TabsTrigger 
                             value="sprint" 
-                            className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3E2F20] data-[state=active]:to-[#E8A87C] data-[state=active]:text-white transition-all duration-300"
+                            className="gap-1.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3E2F20] data-[state=active]:to-[#E8A87C] data-[state=active]:text-white transition-all duration-300"
                         >
-                            <Zap className="h-5 w-5"/>
+                            <Zap className="h-4 w-4"/>
                             Quick Sprint
                         </TabsTrigger>
                     </TabsList>
@@ -846,7 +823,7 @@ export default function LearningPathPage() {
             </motion.div>
            
             {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-4 gap-6 items-start relative z-10">
+            <div className="grid lg:grid-cols-4 gap-3 items-start relative z-10">
                  {/* Left Sidebar - Job Roles */}
                  <div className="lg:col-span-1">
                     <JobRoleSelector />
@@ -861,30 +838,30 @@ export default function LearningPathPage() {
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="mb-4"
                     >
-                        <Card className="border-[#3E2F20]/10 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl bg-gradient-to-br from-white to-[#FAF7F3]/50">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center gap-2">
-                                    <Target className="h-4 w-4 text-[#E8A87C]" />
-                                    <CardTitle className="text-lg text-[#3E2F20]">Skill Gap Overview</CardTitle>
+                        <Card className="border-[#3E2F20]/10 shadow-md transition-all duration-300 rounded-lg bg-gradient-to-br from-white to-[#FAF7F3]/50">
+                            <CardHeader className="pb-2 pt-3 px-4">
+                                <div className="flex items-center gap-1.5">
+                                    <Target className="h-3.5 w-3.5 text-[#E8A87C]" />
+                                    <CardTitle className="text-sm text-[#3E2F20]">Skill Gap Overview</CardTitle>
                                 </div>
                                 <CardDescription className="text-xs text-[#3E2F20]/70">
                                     Skills for <span className="font-semibold text-[#E8A87C]">"{selectedSession?.jobRole || 'Latest Role'}"</span>
                                     {selectedSession?.jobCompany && ` at ${selectedSession.jobCompany}`}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-4">
-                                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                            <CardContent className="p-3 pt-0">
+                                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5">
                                     {skills.map((skill, idx) => (
                                         <motion.div
                                             key={skill.name}
                                             initial={{ opacity: 0, scale: 0.9 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="p-2 rounded-lg bg-white border border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 hover:shadow-md text-center"
-                                            whileHover={{ y: -2 }}
+                                            className="p-1.5 rounded-md bg-white border border-[#3E2F20]/10 hover:border-[#E8A87C] transition-all duration-300 text-center"
+                                            whileHover={{ y: -1 }}
                                         >
-                                            <div className={`w-6 h-6 rounded-full ${getRatingColor(skill.rating)} mx-auto mb-1.5`} />
-                                            <div className="font-semibold text-xs text-[#3E2F20] mb-0.5 truncate" title={skill.name}>
+                                            <div className={`w-4 h-4 rounded-full ${getRatingColor(skill.rating)} mx-auto mb-1`} />
+                                            <div className="font-semibold text-[10px] text-[#3E2F20] mb-0.5 truncate" title={skill.name}>
                                                 {skill.name}
                                             </div>
                                             <div className="text-xs text-[#3E2F20]/60">{skill.rating}%</div>

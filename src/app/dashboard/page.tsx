@@ -124,41 +124,20 @@ export default function DashboardPage() {
         transition={{ duration: 0.3 }}
       >
         <Card className="h-full bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#E8A87C]/10 to-transparent rounded-bl-full" />
-          <CardHeader className="pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-[#3E2F20] flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#E8A87C]" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-[#E8A87C]/10 to-transparent rounded-bl-full" />
+          <CardHeader className="pb-1 pt-3 px-4 relative z-10">
+            <CardTitle className="text-xs font-medium text-[#3E2F20] flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[#E8A87C]" />
               Job Readiness
             </CardTitle>
           </CardHeader>
-          <CardContent className="pb-2 relative z-10">
-            <ChartContainer config={{}} className="mx-auto aspect-square w-full max-w-[180px]">
-              <RadialBarChart
-                data={chartData}
-                startAngle={-90}
-                endAngle={270}
-                innerRadius={55}
-                outerRadius={80}
-                barSize={12}
-                dataKey="value"
-              >
-                <PolarRadiusAxis tick={false} tickLine={false} axisLine={false} domain={[0, 100]} />
-                <RadialBar 
-                  dataKey="value" 
-                  background={{ fill: '#FAF7F3' }} 
-                  cornerRadius={10} 
-                  style={{ fill: status.color }}
-                />
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-[#3E2F20]">
-                  <tspan dy="-0.3em" className="text-3xl font-bold">{score}%</tspan>
-                  <tspan x="50%" dy="1.3em" className={cn("text-sm font-semibold", status.className)}>{status.text}</tspan>
-                </text>
-              </RadialBarChart>
-            </ChartContainer>
+          <CardContent className="pb-2 px-4 relative z-10">
+            <div className="text-3xl font-bold text-[#3E2F20]">{score}%</div>
+            <p className={cn("text-xs font-semibold mt-0.5", status.className)}>{status.text}</p>
           </CardContent>
-          <CardFooter className="flex-col gap-1 text-xs pt-0 text-center relative z-10">
-            <p className="text-[#3E2F20]/60 font-medium">
-              Score ≥ 80% is interview-ready
+          <CardFooter className="text-xs pt-0 px-4 pb-3 relative z-10">
+            <p className="text-[#3E2F20]/50 font-medium text-[10px]">
+              ≥ 80% is interview-ready
             </p>
           </CardFooter>
         </Card>
@@ -476,19 +455,19 @@ export default function DashboardPage() {
         }}
       />
 
-      <div className="space-y-8 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto relative z-10">
+      <div className="space-y-3 p-3 md:p-3 lg:p-4 max-w-[1600px] mx-auto relative z-10">
         {/* Welcome Header */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2 relative"
+          className="space-y-1 relative"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-[#3E2F20] via-[#E8A87C] to-[#3E2F20] bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-[#3E2F20] via-[#E8A87C] to-[#3E2F20] bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
               Welcome back{user?.displayName ? `, ${user.displayName}` : ''}! 👋
             </h1>
           </motion.div>
@@ -496,7 +475,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-[#3E2F20]/70 text-lg flex items-center gap-2"
+            className="text-[#3E2F20]/70 text-sm flex items-center gap-2"
           >
             <motion.span
               animate={{ rotate: [0, 10, -10, 0] }}
@@ -516,20 +495,8 @@ export default function DashboardPage() {
             transition={{ duration: 0.4, type: "spring" }}
             whileHover={{ scale: 1.01, y: -2 }}
           >
-            <Card className="border-[#E8A87C] bg-gradient-to-r from-[#E8A87C]/10 via-white to-[#FAF7F3] shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                animate={{
-                  x: ['-100%', '200%'],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  repeatDelay: 5,
-                  ease: "easeInOut",
-                }}
-              />
-              <CardHeader className="pb-3 relative z-10">
+            <Card className="border-[#E8A87C] bg-gradient-to-r from-[#E8A87C]/10 via-white to-[#FAF7F3] shadow-md transition-all duration-300 relative overflow-hidden">
+              <CardHeader className="pb-2 pt-3 relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-lg flex items-center gap-2 text-[#3E2F20]">
@@ -550,8 +517,8 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pb-3 relative z-10">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <CardContent className="pb-2 pt-0 relative z-10">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {[
                     { label: 'Skills Tested', value: latestCompletedSession.skillScores ? Object.keys(latestCompletedSession.skillScores).length : 0, delay: 0 },
                     { label: 'Questions Answered', value: latestCompletedSession.questionsAnswered || latestCompletedSession.totalQuestions || 'N/A', delay: 0.1 },
@@ -564,30 +531,20 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: stat.delay }}
                       whileHover={{ scale: 1.05, y: -4 }}
-                      className="p-3 rounded-xl bg-white/70 border border-[#3E2F20]/10 hover:border-[#E8A87C]/50 transition-all duration-300 hover:shadow-md cursor-default"
+                      className="p-2 rounded-lg bg-white/70 border border-[#3E2F20]/10 hover:border-[#E8A87C]/50 transition-all duration-300 hover:shadow-md cursor-default"
                     >
                       <p className="text-[#3E2F20]/60 text-xs mb-1">{stat.label}</p>
                       <p className={cn(
-                        "font-bold text-xl",
+                        "font-bold text-lg",
                         stat.isScore ? "text-[#E8A87C]" : "text-[#3E2F20]"
                       )}>{stat.value}</p>
                     </motion.div>
                   ))}
                 </div>
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-sm text-[#3E2F20]/70 mt-3 flex items-center gap-2"
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
-                  >
-                    <Sparkles className="h-4 w-4 text-[#E8A87C]" />
-                  </motion.div>
-                  <span>Your personalized learning path is ready! Review your skill gaps and get curated resources to improve.</span>
-                </motion.div>
+                <p className="text-xs text-[#3E2F20]/60 mt-2 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-[#E8A87C] flex-shrink-0" />
+                  Your personalized learning path is ready!
+                </p>
               </CardContent>
             </Card>
           </motion.div>
@@ -637,7 +594,7 @@ export default function DashboardPage() {
                   size="lg" 
                   variant={action.primary ? "default" : "outline"}
                   className={cn(
-                    "h-auto py-4 justify-start w-full rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group",
+                    "h-auto py-2.5 justify-start w-full rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group",
                     action.primary 
                       ? "bg-gradient-to-r from-[#3E2F20] to-[#5a4530] hover:from-[#E8A87C] hover:to-[#d4985f] text-white" 
                       : "border-[#3E2F20]/20 hover:border-[#E8A87C] hover:bg-gradient-to-r hover:from-[#FAF7F3] hover:to-white text-[#3E2F20]"
@@ -666,11 +623,11 @@ export default function DashboardPage() {
         )}
 
         {/* Main Grid Layout */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-3">
           {/* Left Column - Stats and Sessions */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="space-y-3 lg:col-span-2">
             {/* Stats Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
               {isLoading ? (
                 <ReadinessScoreLoading />
               ) : (
@@ -683,14 +640,14 @@ export default function DashboardPage() {
                 transition={{ delay: 0.05 }}
                 whileHover={{ y: -8, scale: 1.03 }}
               >
-                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-lg hover:shadow-2xl transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
+                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-md hover:shadow-lg transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
                   <motion.div 
                     className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-100/50 to-transparent rounded-bl-full"
                     whileHover={{ scale: 1.5, opacity: 0.8 }}
                     transition={{ duration: 0.3 }}
                   />
-                  <CardHeader className="pb-2 relative z-10">
-                    <CardTitle className="text-sm font-medium flex items-center justify-between text-[#3E2F20]">
+                  <CardHeader className="pb-1 pt-3 px-4 relative z-10">
+                    <CardTitle className="text-xs font-medium flex items-center justify-between text-[#3E2F20]">
                       <span>Skill Gaps</span>
                       <motion.div
                         whileHover={{ rotate: 360, scale: 1.2 }}
@@ -700,7 +657,7 @@ export default function DashboardPage() {
                       </motion.div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="relative z-10">
+                  <CardContent className="relative z-10 px-4 pb-3">
                     {isLoading ? (
                       <div className="space-y-2">
                         <div className="h-8 bg-[#D4B68A]/20 rounded-full w-1/2 animate-pulse" />
@@ -709,7 +666,7 @@ export default function DashboardPage() {
                     ) : (
                       <>
                         <motion.div 
-                          className="text-4xl font-bold text-[#3E2F20]"
+                          className="text-3xl font-bold text-[#3E2F20]"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
@@ -731,14 +688,14 @@ export default function DashboardPage() {
                 transition={{ delay: 0.1 }}
                 whileHover={{ y: -8, scale: 1.03 }}
               >
-                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-lg hover:shadow-2xl transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
+                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-md hover:shadow-lg transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
                   <motion.div 
                     className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-100/50 to-transparent rounded-bl-full"
                     whileHover={{ scale: 1.5, opacity: 0.8 }}
                     transition={{ duration: 0.3 }}
                   />
-                  <CardHeader className="pb-2 relative z-10">
-                    <CardTitle className="text-sm font-medium flex items-center justify-between text-[#3E2F20]">
+                  <CardHeader className="pb-1 pt-3 px-4 relative z-10">
+                    <CardTitle className="text-xs font-medium flex items-center justify-between text-[#3E2F20]">
                       <span>Weakest Area</span>
                       <motion.div
                         whileHover={{ rotate: 360, scale: 1.2 }}
@@ -748,7 +705,7 @@ export default function DashboardPage() {
                       </motion.div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="relative z-10">
+                  <CardContent className="relative z-10 px-4 pb-3">
                     {isLoading ? (
                       <div className="space-y-2">
                         <div className="h-8 bg-[#D4B68A]/20 rounded-full w-3/4 animate-pulse" />
@@ -757,7 +714,7 @@ export default function DashboardPage() {
                     ) : (
                       <>
                         <motion.div 
-                          className="text-2xl font-bold text-[#3E2F20] line-clamp-2 break-words"
+                          className="text-lg font-bold text-[#3E2F20] line-clamp-1 break-words"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 200, delay: 0.25 }}
@@ -780,14 +737,14 @@ export default function DashboardPage() {
                 transition={{ delay: 0.15 }}
                 whileHover={{ y: -8, scale: 1.03 }}
               >
-                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-lg hover:shadow-2xl transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
+                <Card className="bg-gradient-to-br from-white to-[#FAF7F3] border-[#3E2F20]/10 shadow-md hover:shadow-lg transition-all duration-300 h-full relative overflow-hidden group cursor-pointer">
                   <motion.div 
                     className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-100/50 to-transparent rounded-bl-full"
                     whileHover={{ scale: 1.5, opacity: 0.8 }}
                     transition={{ duration: 0.3 }}
                   />
-                  <CardHeader className="pb-2 relative z-10">
-                    <CardTitle className="text-sm font-medium flex items-center justify-between text-[#3E2F20]">
+                  <CardHeader className="pb-1 pt-3 px-4 relative z-10">
+                    <CardTitle className="text-xs font-medium flex items-center justify-between text-[#3E2F20]">
                       <span>Total Sessions</span>
                       <motion.div
                         whileHover={{ rotate: 360, scale: 1.2 }}
@@ -797,7 +754,7 @@ export default function DashboardPage() {
                       </motion.div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="relative z-10">
+                  <CardContent className="relative z-10 px-4 pb-3">
                     {isLoading ? (
                       <div className="space-y-2">
                         <div className="h-8 bg-[#D4B68A]/20 rounded-full w-1/4 animate-pulse" />
@@ -806,7 +763,7 @@ export default function DashboardPage() {
                     ) : (
                       <>
                         <motion.div 
-                          className="text-4xl font-bold text-[#3E2F20]"
+                          className="text-3xl font-bold text-[#3E2F20]"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 200, delay: 0.3 }}
@@ -832,7 +789,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Profile Card */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}

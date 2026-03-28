@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Exclude pdf-parse from being bundled by Next.js/Turbopack.
+  // Without this, Next.js bundles the library and it tries to read its own
+  // test PDF files from disk, causing the "ENOENT: test/data/05-versions-space.pdf" error.
+  serverExternalPackages: ['pdf-parse'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     remotePatterns: [
       {
